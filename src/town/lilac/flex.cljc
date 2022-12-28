@@ -17,7 +17,8 @@
 
 (defprotocol Reactive
   (-connect [o dep])
-  (-disconnect [o dep]))
+  (-disconnect [o dep])
+  (-touch [o]))
 
 (defprotocol Ordered
   (-get-order [o]))
@@ -52,6 +53,7 @@
     (set! dependents (conj dependents dep)))
   (-disconnect [_ dep]
     (set! dependents (disj dependents dep)))
+  (-touch [_] value)
   Ordered
   (-get-order [_] order)
   Source
@@ -129,22 +131,25 @@
         (-disconnect deps this))
       (set! dependencies nil)
       (set! cache sentinel)))
+  (-touch [this]
+    (when (= sentinel cache)
+      ;; track dependencies
+      (binding [*reactive* #{}]
+        ;; https://clojure.atlassian.net/browse/CLJ-2743
+        (set! (.-cache this) (f))
+        (set! (.-dependencies this) *reactive*)
+        (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
+        (doseq [dep *reactive*]
+          (-connect dep this))))
+    cache)
   Ordered
   (-get-order [_] order)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
-    (when (some? *reactive*)
-      (set! *reactive* (conj *reactive* this))
-      (when (= sentinel cache)
-        ;; track dependencies
-        (binding [*reactive* #{}]
-          ;; https://clojure.atlassian.net/browse/CLJ-2743
-          (set! (.-cache this) (f))
-          (set! (.-dependencies this) *reactive*)
-          (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
-          (doseq [dep *reactive*]
-            (-connect dep this)))))
-    cache)
+    (if (some? *reactive*)
+      (do (set! *reactive* (conj *reactive* this))
+          (-touch this))
+      cache))
   Signal
   (-propagate [this]
     (binding [*reactive* #{}]
