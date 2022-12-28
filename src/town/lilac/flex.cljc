@@ -183,26 +183,62 @@
     (set! on-dispose-fns (conj on-dispose-fns f))))
 
 (defn source
+  "Creates a container with a value inside. `deref` it to get the value, and
+  call it like a function to change it.
+
+  (def src (source 0))
+  @src ;; => 0
+  (src 1)
+  @src ;; => 1
+
+  A function can be passed to operate on the current value without dereferencing.
+
+  (src inc)
+  @src ;; => 2
+
+  When reactive exprs created with `signal` and `effect` dereference it, changes
+  will be propagated to them."
   [initial]
   (->SyncSource initial #{} 0))
 
 (defn create-signal
+  "Creates a reactive signal object. Used by `signal`."
   [f]
   (->SyncSignal sentinel #{} #{} [] nil f))
 
 (defn create-effect
+  "Creates a reactive effect object. Used by `effect`."
   [f]
   (->SyncEffect #{} nil nil f))
 
 (defmacro signal
+  "Creates a reactive signal object which yields the return value of the body
+  when dereferenced inside another reactive expression, e.g. `signal` or
+  `effect`.
+
+  Any signals or sources dereferenced inside the body will propagate their
+  changes to this signal, which will propagate on to its dependents.
+
+  If the same value (using =) is returned by the body, stops propagation."
   [& body]
   `(create-signal (fn [] ~@body)))
 
 (defmacro effect
+  "Creates a reactive effect object, which is meant to do side effects based on
+  changes to signals and sources.
+
+  Returns a function that when called executes the body and connects any
+  reactive objects dereferenced in the body, so that they start computing and
+  reacting to upstream changes.
+
+  Calling the function returns \"dispose\" function which when called will stop
+  the effect from continuing to execute, and cleans up any signals that are
+  solely referenced by the effect."
   [& body]
   `(create-effect (fn ~@body)))
 
 (defn send!
+  "Sends a value to a source. Same as calling it like a function."
   [src x]
   (loop [deps (heap (-send src x))]
     (when-let [[order next-deps] (first deps)]
@@ -215,10 +251,13 @@
                            next-deps))))))
 
 (defn run!
+  "Starts an effect. Same as calling it like a function."
   [effect]
   (-run! effect))
 
 (defn on-dispose
+  "Adds a callback function to a signal to be called when the signal is no
+  longer listened to by any other signal or effect and is cleaned up."
   [s f]
   (-add-on-dispose s f)
   s)
