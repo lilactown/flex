@@ -23,6 +23,10 @@
 (defprotocol Ordered
   (-get-order [o]))
 
+(defprotocol Disposable
+  (-dispose [o])
+  (-add-on-dispose [o f]))
+
 (defprotocol Debug
   (dump [o]))
 
@@ -83,6 +87,13 @@
   (-propagate [this] (-run! this) nil)
   Ordered
   (-get-order [_] order)
+  Disposable
+  (-dispose [this]
+    (and (fn? cleanup) (cleanup))
+    (set! (.-cleanup this) nil)
+    (doseq [dep dependencies]
+      (-disconnect dep this))
+    (set! (.-dependencies this) nil))
   Sink
   (-run! [this]
     (binding [*reactive* #{}]
@@ -93,12 +104,7 @@
         (-connect dep this))
       (set! dependencies *reactive*)
       (set! order (inc (apply max (map #(-get-order %) *reactive*))))
-      (fn dispose []
-        (and (fn? cleanup) (cleanup))
-        (set! (.-cleanup this) nil)
-        (doseq [dep dependencies]
-          (-disconnect dep this))
-        (set! (.-dependencies this) nil))))
+      (fn dispose [] (-dispose this))))
   #?(:clj clojure.lang.IFn :cljs IFn)
   (#?(:clj invoke :cljs -invoke) [this] (-run! this))
   #?@(:clj ((applyTo [this args]
@@ -111,6 +117,7 @@
 (deftype SyncSignal [^:volatile-mutable cache
                      ^:volatile-mutable dependents
                      ^:volatile-mutable dependencies
+                     ^:volatile-mutable on-dispose-fns
                      ^:volatile-mutable order
                      f]
   Debug
@@ -126,11 +133,7 @@
   (-disconnect [this dep]
     (set! dependents (disj dependents dep))
     (when (empty? dependents)
-      ;; completely disconnected, allow GC
-      (doseq [deps dependencies]
-        (-disconnect deps this))
-      (set! dependencies nil)
-      (set! cache sentinel)))
+      (-dispose this)))
   (-touch [this]
     (when (= sentinel cache)
       ;; track dependencies
@@ -164,7 +167,18 @@
         ;; aka cutoff
         (when (not= cache newv)
           (set! cache newv)
-          dependents)))))
+          dependents))))
+  Disposable
+  (-dispose [this]
+    (doseq [f on-dispose-fns]
+      (f cache))
+    ;; completely disconnect, allow GC
+    (doseq [deps dependencies]
+      (-disconnect deps this))
+    (set! dependencies nil)
+    (set! cache sentinel))
+  (-add-on-dispose [_ f]
+    (set! on-dispose-fns (conj on-dispose-fns f))))
 
 (defn source
   [initial]
@@ -172,7 +186,7 @@
 
 (defn create-signal
   [f]
-  (->SyncSignal sentinel #{} #{} nil f))
+  (->SyncSignal sentinel #{} #{} [] nil f))
 
 (defn create-effect
   [f]
@@ -201,3 +215,8 @@
 (defn run!
   [effect]
   (-run! effect))
+
+(defn on-dispose
+  [s f]
+  (-add-on-dispose s f)
+  s)

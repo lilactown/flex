@@ -72,5 +72,27 @@
     (is (= [2 3] @*calls))
     (is (= 2 @*cleanup-calls))))
 
+(deftest on-dispose
+  (let [*calls (atom [])
+        *disposed (atom 0)
+        A (f/source 0)
+        B (f/on-dispose (f/signal (* @A @A)) (fn [_] (swap! *disposed inc)))
+        Z (f/effect [_] (swap! *calls conj @B))
+        dispose (Z)]
+    (is (= 0 @*disposed))
+    (is (= [0] @*calls))
+    (A 2)
+    (is (= 0 @*disposed))
+    (is (= [0 4] @*calls))
+    (dispose)
+    (is (= 1 @*disposed))
+    (is (= [0 4] @*calls))
+    (let [dispose (Z)]
+      (is (= 1 @*disposed))
+      (is (= [0 4 4] @*calls))
+      (dispose)
+      (is (= 2 @*disposed))
+      (is (= [0 4 4] @*calls)))))
+
 (comment
   (t/run-tests))

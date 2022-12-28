@@ -6,6 +6,7 @@
 (deftype SyncSignalTransduction [^:volatile-mutable cache
                                  ^:volatile-mutable dependents
                                  dependency
+                                 ^:volatile-mutable on-dispose-fns
                                  ^:volatile-mutable order
                                  init
                                  xform
@@ -20,17 +21,22 @@
      :xform xform
      :rf rf
      :rf' rf'})
+  flex/Disposable
+  (-add-on-dispose [_ f]
+    (set! on-dispose-fns (conj on-dispose-fns f)))
+  (-dispose [this]
+    ;; completely disconnect, allow GC
+    (flex/-disconnect dependency this)
+    ;; reset cache and reducer
+    (set! cache flex/sentinel)
+    (set! rf' nil))
   flex/Reactive
   (-connect [_ dep]
     (set! dependents (conj dependents dep)))
   (-disconnect [this dep]
     (set! dependents (disj dependents dep))
     (when (empty? dependents)
-      ;; completely disconnected, allow GC
-      (flex/-disconnect dependency this)
-      ;; reset cache and reducer
-      (set! cache flex/sentinel)
-      (set! rf' nil)))
+      (flex/-dispose this)))
   (-touch [this]
     (when (= flex/sentinel cache)
       (set! rf' (xform rf))
@@ -55,7 +61,7 @@
 
 (defn transduce
   [xform rf init s]
-  (->SyncSignalTransduction flex/sentinel #{} s nil init xform rf nil))
+  (->SyncSignalTransduction flex/sentinel #{} s [] nil init xform rf nil))
 
 (defn transform
   [xform s]
