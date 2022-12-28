@@ -60,13 +60,26 @@
         dependents))))
 
 (defn transduce
+  "Returns a reactive signal which takes each value emitted by reactive obj `s`
+  and computes a new value by calling `((xf rf) prev new)`.
+  Works with all clojure.core transducers, including stateful ones.
+  State is reset on disposal."
   [xform rf init s]
   (->SyncSignalTransduction flex/sentinel #{} s [] nil init xform rf nil))
 
 (defn transform
+  "Returns a reactive signal that uses the transducer `xform` on each value
+  produced by reactive obj `s`, emitting the latest value and discarding
+  previous."
   [xform s]
   (transduce xform (fn [_ x] x) nil s))
 
 (defn collect
-  [coll xform s]
-  (transduce xform (fn [acc x] (conj acc x)) coll s))
+  "Takes an initial `coll`, an `xform` and a reactive obj `s`.
+  Returns a reactive signal that `conj`s each value emitted by `s` on to `coll`.
+  A transducer may be applied.
+
+  Like `clojure.core/into` for reactive signals."
+  ([coll s] (collect coll identity s))
+  ([coll xform s]
+   (transduce xform conj coll s)))
