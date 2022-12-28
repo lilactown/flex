@@ -62,7 +62,9 @@
   (-get-order [_] order)
   Source
   (-send [_ x]
-    (set! value x)
+    (if (fn? x) ; TODO handle multimethods
+      (set! value (x value))
+      (set! value x))
     dependents)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
