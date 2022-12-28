@@ -1,7 +1,7 @@
 (ns town.lilac.flex.xform
   (:require
    [town.lilac.flex :as flex])
-  (:refer-clojure :exclude [map transduce filter]))
+  (:refer-clojure :exclude [transduce]))
 
 (deftype SyncSignalTransduction [^:volatile-mutable cache
                                  ^:volatile-mutable dependents
@@ -61,10 +61,6 @@
   [xform s]
   (transduce xform (fn [_ x] x) nil s))
 
-(defn map
-  [f s]
-  (transform (clojure.core/map f) s))
-
-(defn filter
-  [pred s]
-  (transform (clojure.core/filter pred) s))
+(defn collect
+  [coll xform s]
+  (transduce xform (fn [acc x] (conj acc x)) coll s))
