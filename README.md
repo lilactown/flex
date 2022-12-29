@@ -10,7 +10,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "2605b53e96b0fa9b1118892074272f66322bfa6c"}
+                 :git/sha "a26a0b3a101347d7ad1e37c93193bbecc0f2b7ee"
 ```
 
 ## Example
