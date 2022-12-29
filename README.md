@@ -59,10 +59,27 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Functional transduce/transform/reduce (`town.lilac.flex.xform`)
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
-- [ ] Transactions
+- [ ] Batching/transactions
+- [ ] Error handling
 - [ ] Babashka support
 - [ ] Multiplexing / multithreaded scheduling on JVM
 - [ ] Async support on JS
+
+### Differences from reagent
+
+flex supports Clojure on the JVM. Reagent is ClojureScript (JS) only
+
+flex computes "live" signals eagerly, and uses a topological ordering to ensure
+that calculations are only done once and avoid glitches. Reagent propagates
+changes up the dependency chain and only re-calculates when dereferenced, which
+can avoid unnecessary work in some instances but can also lead to glitches.
+
+flex does all changes, computations and effects synchronously by default.
+Reagent schedules some effects asynchronously using `requestAnimationFrame`.
+
+flex only handles reactive computation graphs and has no external dependencies.
+Reagent bundles together its reactive computations with additional functionality
+to build web apps in the browser, and depends on React.js for this.
 
 ## License & Copyright
 
