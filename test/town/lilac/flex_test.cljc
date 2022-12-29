@@ -143,7 +143,23 @@
       (is (= f/sentinel @C))
       (is (= f/sentinel @D))
       (A 3)
-      (is (= [1 101 21] @*calls)))))
+      (is (= [1 101 21] @*calls))))
+  (testing "order"
+    (let [*calls (atom [])
+          A (f/source 0)
+          B (f/signal (+ @A 10))
+          C (f/signal (- @B 10))
+          D (f/signal (let [a @A]
+                        (if (> a 0)
+                          (let [c @C]
+                            (+ a c))
+                          a)))
+          Z (f/effect [_] (swap! *calls conj @D))
+          dispose (Z)]
+      (is (= [0] @*calls))
+      (A 1)
+      (A 2)
+      (is (= [0 2 4] @*calls)))))
 
 (comment
   (t/run-tests))

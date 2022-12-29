@@ -165,6 +165,7 @@
         (doseq [dep (set/difference *reactive* dependencies)]
           (-connect dep this))
         (set! dependencies *reactive*)
+        (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
         ;; only return dependents and set cache if value is different
         ;; aka cutoff
         (when (not= cache newv)
