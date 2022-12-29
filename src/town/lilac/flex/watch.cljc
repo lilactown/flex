@@ -10,11 +10,12 @@
     (when (nil? dispose)
       (let [fx (flex/effect
                 [prev]
-                (doseq [[k f] watchers]
+                (doseq [[k f] (.-watchers this)]
                   (f k this prev @s))
                 @s)]
         (set! dispose (fx))))
-    (set! watchers (assoc watchers key f)))
+    (set! watchers (assoc watchers key f))
+    this)
   (#?(:clj removeWatch :cljs -remove-watch) [_ key]
     (set! watchers (dissoc watchers key))
     (when (empty? watchers)
