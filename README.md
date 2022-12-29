@@ -21,30 +21,33 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
   (:require
    [town.lilac.flex :as flex]))
 
-(def state (flex/source {:count 0}))
+;; a state container that can be changed manually
+(def counter (flex/source 0))
 
-(def counter (flex/signal (:count @state)))
+;; a computation that updates when its dependencies change
+(def counter-sq (flex/signal (* @state @state)))
 
-(def prn-fx (flex/effect (prn @counter)))
+;; an effect that runs side effects when its dependencies change
+(def prn-fx (flex/effect (prn @counter-sq)))
 
 (def dispose (prn-fx))
 ;; print: 0
 
-(state #(update % :count inc))
+(counter 1)
 ;; print: 1
 
 (doseq [_ (range 5)]
-  (state #(update % :count inc)))
+  (counter inc))
 
-;; print: 2
-;; print: 3
 ;; print: 4
-;; print: 5
-;; print: 6
+;; print: 9
+;; print: 16
+;; print: 25
+;; print: 36
 
 (dispose) ; stop the effect from running and any dependent signals calculating
 
-(state {:count 0}) ; reset state
+(counter inc)
 
 ;; nothing is printed
 ```
