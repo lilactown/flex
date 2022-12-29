@@ -79,27 +79,27 @@
                      (send! this (first args))))))
 
 (deftype SyncEffect [^:volatile-mutable dependencies
-                     ^:volatile-mutable cleanup
+                     ^:volatile-mutable prev
                      ^:volatile-mutable order
                      f]
   Debug
   (dump [_]
-    {:dependencies dependencies :cleanup cleanup :order order :f f})
+    {:dependencies dependencies :prev prev :order order :f f})
   Signal
   (-propagate [this] (-run! this) nil)
   Ordered
   (-get-order [_] order)
   Disposable
   (-dispose [this]
-    (and (fn? cleanup) (cleanup))
-    (set! (.-cleanup this) nil)
+    (and (fn? prev) (prev))
+    (set! (.-prev this) nil)
     (doseq [dep dependencies]
       (-disconnect dep this))
     (set! (.-dependencies this) nil))
   Sink
   (-run! [this]
     (binding [*reactive* #{}]
-      (set! cleanup (f cleanup))
+      (set! prev (f prev))
       (doseq [dep (set/difference dependencies *reactive*)]
         (-disconnect dep this))
       (doseq [dep (set/difference *reactive* dependencies)]
@@ -227,12 +227,16 @@
   "Creates a reactive effect object, which is meant to do side effects based on
   changes to signals and sources.
 
+  `body` should start with an args vector, which receives one argument
+  (the previous value returned by the body) and then a series of expressions
+  to be evaluated.
+
   Returns a function that when called executes the body and connects any
   reactive objects dereferenced in the body, so that they start computing and
   reacting to upstream changes.
 
-  Calling the function returns \"dispose\" function which when called will stop
-  the effect from continuing to execute, and cleans up any signals that are
+  Calling the function returns a \"dispose\" function which when called will
+  stop the effect from continuing to execute, and cleans up any signals that are
   solely referenced by the effect."
   [& body]
   `(create-effect (fn ~@body)))
