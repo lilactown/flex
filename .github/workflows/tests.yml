@@ -19,8 +19,8 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
             ~/.deps.clj
-          key: cljdeps-datascript-${{ hashFiles('deps.edn') }}
-          restore-keys: cljdeps-datascript-
+          key: cljdeps-${{ hashFiles('deps.edn') }}
+          restore-keys: cljdeps-
       - name: Setup Node.js environment
         uses: actions/setup-node@v1
       - name: Run Clojure tests
