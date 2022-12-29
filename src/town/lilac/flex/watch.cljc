@@ -27,5 +27,8 @@
 
 
 (defn watcher
+  "Returns a wrapper around a reactive signal `s` that implements the interface
+  for `add-watch` and `remove-watch`. It lazily constructs an effect on first
+  watch that is disposed when the last watcher is removed."
   [s]
   (->SyncWatcher {} nil s))
