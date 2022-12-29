@@ -24,3 +24,6 @@
           C' (factory 2)]
       (is (not= B B''))
       (is (not= C C')))))
+
+(comment
+  (t/run-tests))
