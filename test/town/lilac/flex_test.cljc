@@ -186,14 +186,15 @@
           Z (f/effect [_] (swap! *calls conj @C))
           dispose (Z)]
       (is (= [1] @*calls))
-      (f/transact! (fn []
-                     (A 2)
-                     (B 0)))
-      (is (= [0] @*calls))
+      (is (thrown? ArithmeticException
+                   (f/transact! (fn []
+                                  (A 2)
+                                  (B 0)))))
+      (is (= [1] @*calls))
       (f/transact! (fn []
                      (A 4)
                      (B 2)))
-      (is (= [0 2] @*calls)))))
+      (is (= [1 2] @*calls)))))
 
 (comment
   (t/run-tests))
