@@ -203,8 +203,8 @@
                    (f/transact! (fn []
                                   (A 2)
                                   (B 0)))))
-      (is (= 1 @A))
-      (is (= 1 @B))
+      (is (= 2 @A))
+      (is (= 0 @B))
       (is (= [1] @*calls))
       (f/transact! (fn []
                      (A 4)
