@@ -194,7 +194,26 @@
       (f/transact! (fn []
                      (A 4)
                      (B 2)))
-      (is (= [1 2] @*calls)))))
+      (is (= [1 2] @*calls))))
+  (testing "signal computations are not tx local"
+    (let [*calls (atom [])
+          A (f/source 0)
+          B (f/signal (* @A @A))
+          Z (f/effect [_] (swap! *calls conj @B))
+          dispose (Z)]
+      (f/dosync
+       (A 2)
+       (is (= 0 @B))
+       (A 3))
+      (is (= [0 9] @*calls))
+      (is (thrown? #?(:clj ExceptionInfo
+                      :cljs js/Error)
+                   (f/dosync
+                    (A 4)
+                    (is (= 9 @B))
+                    (throw (ex-info "oh no" {})))))
+      (is (= [0 9] @*calls))
+      (is (= 9 @B)))))
 
 (comment
   (t/run-tests))
