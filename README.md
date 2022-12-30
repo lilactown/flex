@@ -69,7 +69,7 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
 - [x] Batching/transactions
-- [x] Error handling
+- [ ] Error handling
 - [ ] Babashka support
 - [ ] Multiplexing / multithreaded scheduling on JVM
 - [ ] Async support on JS
