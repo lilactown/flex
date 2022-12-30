@@ -95,7 +95,7 @@
   #?(:clj clojure.lang.IFn :cljs IFn)
   (#?(:clj invoke :cljs -invoke) [this x]
     (if (:id *current-tx*)
-      (-send this x)
+      (get txs (-send this x))
       (send! this x)))
   #?@(:clj ((applyTo [this args]
                      (when (not= 1 (count args))
@@ -284,7 +284,8 @@
   [src x]
   (sync! (binding [*current-tx* {:id (vswap! *tx-id inc)
                                  :dirty []}]
-           (-commit src (-send src x)))))
+           (-commit src (-send src x))))
+  @src)
 
 (defn transact!
   [f]
@@ -298,7 +299,8 @@
            ;; TODO does this fuck with the stacktrace?
            (throw e)))
     (let [{:keys [id dirty]} *current-tx*]
-      (sync! (mapcat #(-commit % id) dirty)))))
+      (sync! (mapcat #(-commit % id) dirty)))
+    (:id *current-tx*)))
 
 (defmacro dosync
   [& body]
