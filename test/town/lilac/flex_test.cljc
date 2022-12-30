@@ -175,9 +175,9 @@
                    (B 1)
                    (is (= 1 @B))
                    (is (= 1 @A))
+                   (A 2)
                    (is (= [[0 0]] @*calls))))
-    (prn (f/dump A) (f/dump B))
-    (is (= [[0 0] [1 1]] @*calls)))
+    (is (= [[0 0] [2 1]] @*calls)))
   (testing "exceptions"
     (let [*calls (atom [])
           A (f/source 1)

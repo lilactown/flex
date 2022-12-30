@@ -290,7 +290,7 @@
 (defn transact!
   [f]
   (binding [*current-tx* {:id (vswap! *tx-id inc)
-                          :dirty []}]
+                          :dirty #{}}]
     (try (f)
          (catch Throwable e
            (let [{:keys [id dirty]} *current-tx*]
