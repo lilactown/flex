@@ -48,7 +48,7 @@
     xs)))
 
 (def *tx-id (volatile! 0))
-(def ^:dynamic *current-tx* nil)
+(def ^:dynamic *current-tx* {})
 
 (deftype SyncSource [^:volatile-mutable value
                      ^:volatile-mutable dependents
@@ -57,7 +57,7 @@
                      ^:volatile-mutable commit]
   Debug
   (dump [_]
-    {:value value :dependents dependents})
+    {:value value :dependents dependents :order order :txs txs :commit commit})
   Reactive
   (-connect [_ dep]
     (set! dependents (conj dependents dep)))
@@ -67,28 +67,31 @@
   Ordered
   (-get-order [_] order)
   Source
-  (-send [_ x]
-    (if-let [tx-id *current-tx*]
+  (-send [this x]
+    (if-let [tx-id (:id *current-tx*)]
       (do (if (fn? x) ; TODO handle multimethods
             (set! txs (update txs tx-id (fnil x value)))
             (set! txs (assoc txs tx-id x)))
+          (set! *current-tx* (update *current-tx* :dirty conj this))
           tx-id)
       (throw (ex-info "Sent value outside of transaction"
                       {:value x :tx *current-tx*}))))
   (-commit [_ tx-id]
     (set! value (get txs tx-id))
     (set! txs (dissoc txs tx-id))
+    ;; TODO ensure that tx-id is monotonic
+    (set! commit tx-id)
     dependents)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
     (when (some? *reactive*)
       (set! *reactive* (conj *reactive* this)))
-    (if-let [tx-id *current-tx*]
+    (if-let [tx-id (:id *current-tx*)]
       (if (contains? txs tx-id) (get txs tx-id) value)
       value))
   #?(:clj clojure.lang.IFn :cljs IFn)
   (#?(:clj invoke :cljs -invoke) [this x]
-    (if *current-tx*
+    (if (:id *current-tx*)
       (-send this x)
       (send! this x)))
   #?@(:clj ((applyTo [this args]
@@ -260,11 +263,10 @@
   [& body]
   `(create-effect (fn ~@body)))
 
-(defn send!
-  "Sends a value to a source. Same as calling it like a function."
-  [src x]
-  (loop [deps (heap (binding [*current-tx* (vswap! *tx-id inc)]
-                      (-commit src (-send src x))))]
+
+(defn- sync!
+  [deps]
+  (loop [deps (heap deps)]
     (when-let [[order next-deps] (first deps)]
       ;; TODO handle recursive
       ;; guaranteed to always have a bigger order in deps
@@ -274,10 +276,22 @@
                            #{}
                            next-deps))))))
 
+(defn send!
+  "Sends a value to a source. Same as calling it like a function."
+  [src x]
+  (sync! (binding [*current-tx* {:id (vswap! *tx-id inc)
+                                 :dirty []}]
+           (-commit src (-send src x)))))
+
 (defn transact!
   [f]
-  (binding [*current-tx* (vswap! *tx-id inc)]
-    (f)))
+  (binding [*current-tx* {:id (vswap! *tx-id inc)
+                          :dirty []}]
+    (f)
+    #_(doseq [src (:dirty *current-tx*)]
+        (-commit src (:id *current-tx*)))
+    (let [{:keys [id dirty]} *current-tx*]
+      (sync! (mapcat #(-commit % id) dirty)))))
 
 (defmacro dosync
   [& body]
