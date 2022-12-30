@@ -292,7 +292,7 @@
   (binding [*current-tx* {:id (vswap! *tx-id inc)
                           :dirty #{}}]
     (try (f)
-         (catch Throwable e
+         (catch #?(:clj Throwable :cljs js/Object) e
            (let [{:keys [id dirty]} *current-tx*]
              (doseq [src dirty]
               (-discard src id)))

@@ -1,7 +1,8 @@
 (ns town.lilac.flex-test
   (:require
    [clojure.test :as t :refer [deftest is testing]]
-   [town.lilac.flex :as f]))
+   [town.lilac.flex :as f])
+  #?(:clj (:import clojure.lang.ExceptionInfo)))
 
 
 (deftest linear
@@ -182,11 +183,15 @@
     (let [*calls (atom [])
           A (f/source 1)
           B (f/source 1)
-          C (f/signal (/ @A @B))
+          C (f/signal #?(:clj (/ @A @B)
+                         :cljs (let [x (/ @A @B)]
+                                 (when (= ##Inf x)
+                                   (throw (ex-info "Divide by zero" {})))
+                                 x)))
           Z (f/effect [_] (swap! *calls conj @C))
           dispose (Z)]
       (is (= [1] @*calls))
-      (is (thrown? ArithmeticException
+      (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                    (f/transact! (fn []
                                   (A 2)
                                   (B 0)))))
