@@ -161,5 +161,33 @@
       (A 2)
       (is (= [0 2 4] @*calls)))))
 
+(deftest transaction
+  (let [*calls (atom [])
+        A (f/source 0)
+        B (f/source 0)
+        Z (f/effect [_] (swap! *calls conj [@A @B]))
+        dispose (Z)]
+    (is (= [[0 0]] @*calls))
+    (f/transact! (fn []
+                   (A 1)
+                   (B 1)))
+    (is (= [[0 0] [1 1]] @*calls)))
+  (testing "exceptions"
+    (let [*calls (atom [])
+          A (f/source 1)
+          B (f/source 1)
+          C (f/signal (/ @A @B))
+          Z (f/effect [_] (swap! *calls conj @C))
+          dispose (Z)]
+      (is (= [1] @*calls))
+      (f/transact! (fn []
+                     (A 2)
+                     (B 0)))
+      (is (= [0] @*calls))
+      (f/transact! (fn []
+                     (A 4)
+                     (B 2)))
+      (is (= [0 2] @*calls)))))
+
 (comment
   (t/run-tests))

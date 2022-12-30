@@ -2,10 +2,11 @@
   (:require
    [clojure.set :as set])
   #?(:cljs (:require-macros [town.lilac.flex]))
-  (:refer-clojure :exclude [run!]))
+  (:refer-clojure :exclude [run! dosync]))
 
 (defprotocol Source
-  (-send [src x] "Send a message to be handled by the source"))
+  (-send [src x] "Send a message to be handled by the source")
+  (-commit [src tx]))
 
 (declare send!)
 
@@ -46,9 +47,14 @@
     heap
     xs)))
 
+(def *tx-id (volatile! 0))
+(def ^:dynamic *current-tx* nil)
+
 (deftype SyncSource [^:volatile-mutable value
                      ^:volatile-mutable dependents
-                     order]
+                     order
+                     ^:volatile-mutable txs
+                     ^:volatile-mutable commit]
   Debug
   (dump [_]
     {:value value :dependents dependents})
@@ -62,9 +68,16 @@
   (-get-order [_] order)
   Source
   (-send [_ x]
-    (if (fn? x) ; TODO handle multimethods
-      (set! value (x value))
-      (set! value x))
+    (if-let [tx-id *current-tx*]
+      (do (if (fn? x) ; TODO handle multimethods
+            (set! txs (update txs tx-id (fnil x value)))
+            (set! txs (assoc txs tx-id x)))
+          tx-id)
+      (throw (ex-info "Sent value outside of transaction"
+                      {:value x :tx *current-tx*}))))
+  (-commit [_ tx-id]
+    (set! value (get txs tx-id))
+    (set! txs (dissoc txs tx-id))
     dependents)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
@@ -200,7 +213,7 @@
   When reactive exprs created with `signal` and `effect` dereference it, changes
   will be propagated to them."
   [initial]
-  (->SyncSource initial #{} 0))
+  (->SyncSource initial #{} 0 {} nil))
 
 (defn create-signal
   "Creates a reactive signal object. Used by `signal`."
@@ -245,7 +258,8 @@
 (defn send!
   "Sends a value to a source. Same as calling it like a function."
   [src x]
-  (loop [deps (heap (-send src x))]
+  (loop [deps (heap (binding [*current-tx* (vswap! *tx-id inc)]
+                      (-commit src (-send src x))))]
     (when-let [[order next-deps] (first deps)]
       ;; TODO handle recursive
       ;; guaranteed to always have a bigger order in deps
@@ -254,6 +268,14 @@
                              (into dependents (-propagate dep)))
                            #{}
                            next-deps))))))
+
+(defn transact!
+  [f]
+  (f))
+
+(defmacro dosync
+  [& body]
+  `(transact! (fn [] ~@body)))
 
 (defn run!
   "Starts an effect. Same as calling it like a function."
