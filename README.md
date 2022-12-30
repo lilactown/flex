@@ -45,6 +45,15 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 ;; print: 25
 ;; print: 36
 
+;; transactions batch their updates to avoid unnecessary updates
+(flex/dosync
+ (counter inc)
+ (counter inc)
+ (counter inc)
+ (counter inc))
+
+;; print: 100
+
 (dispose) ; stop the effect from running and any dependent signals calculating
 
 (counter inc)
