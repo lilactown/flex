@@ -10,7 +10,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "a26a0b3a101347d7ad1e37c93193bbecc0f2b7ee"
+                 :git/sha "ad0a77d359cacbad68f0c6766a011820dfaf9f26"
 ```
 
 ## Example
@@ -59,23 +59,43 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Functional transduce/transform/reduce (`town.lilac.flex.xform`)
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
-- [ ] Batching/transactions
-- [ ] Error handling
+- [x] Batching/transactions
+- [x] Error handling
 - [ ] Babashka support
 - [ ] Multiplexing / multithreaded scheduling on JVM
 - [ ] Async support on JS
 
 ### Differences from reagent
 
+#### Platform support
+
 flex supports Clojure on the JVM. Reagent is ClojureScript (JS) only
+
+#### Eager vs lazy
 
 flex computes "live" signals eagerly, and uses a topological ordering to ensure
 that calculations are only done once and avoid glitches. Reagent propagates
 changes up the dependency chain and only re-calculates when dereferenced, which
 can avoid unnecessary work in some instances but can also lead to glitches.
 
+#### Transactions and errors
+
+When inside of a transaction, flex does not compute any dependent signals until
+the transaction has ended, even if the signal is explicitly dereferenced.
+When reagent is batching updates, it will calculate the result of a reaction
+with the latest value if it is dereferenced.
+
+If an error occurs inside of a flex transaction, all changes are rolled back and
+no signals are updated. If a change to one reagent atom results in an error, the
+atom and any other signals are left in that state while the computation that
+errored is not.
+
+#### Scheduling
+
 flex does all changes, computations and effects synchronously by default.
 Reagent schedules some effects asynchronously using `requestAnimationFrame`.
+
+#### Scope
 
 flex only handles reactive computation graphs and has no external dependencies.
 Reagent bundles together its reactive computations with additional functionality
