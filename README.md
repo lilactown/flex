@@ -28,7 +28,7 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 (def counter-sq (flex/signal (* @state @state)))
 
 ;; an effect that runs side effects when its dependencies change
-(def prn-fx (flex/effect (prn @counter-sq)))
+(def prn-fx (flex/effect [_prev] (prn @counter-sq)))
 
 (def dispose (prn-fx))
 ;; print: 0
