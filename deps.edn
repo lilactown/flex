@@ -1,6 +1,6 @@
 {:paths ["src"]
  :aliases {:dev
-           {:extra-paths ["test"]
+           {:extra-paths ["test" "dev"]
             :extra-deps {org.clojure/clojurescript {:mvn/version "LATEST"}}}
            :test-clj
            {:extra-paths ["test"]
