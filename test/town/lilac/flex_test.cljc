@@ -191,13 +191,24 @@
           Z (f/effect [_] (swap! *calls conj @C))
           dispose (Z)]
       (is (= [1] @*calls))
+      (is (thrown? #?(:clj ExceptionInfo :cljs js/Error)
+                   (f/transact! (fn []
+                                  (A 2)
+                                  (B 2)
+                                  (throw (ex-info "oh no" {}))))))
+      (is (= 1 @A))
+      (is (= 1 @B))
+      (is (= [1] @*calls))
       (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                    (f/transact! (fn []
                                   (A 2)
                                   (B 0)))))
+      (is (= 1 @A))
+      (is (= 1 @B))
       (is (= [1] @*calls))
       (f/transact! (fn []
                      (A 4)
+                     (B 0) ; since this is updated again, no error triggered
                      (B 2)))
       (is (= [1 2] @*calls))))
   (testing "signal computations are not tx local"
