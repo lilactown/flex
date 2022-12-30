@@ -96,7 +96,7 @@ with the latest value if it is dereferenced.
 
 If an error occurs inside of a flex transaction, all changes are rolled back and
 no signals are updated. If a change to one reagent atom results in an error, the
-atom and any other signals are left in that state while the computation that
+atom and any dependent signals are left in that state while the computation that
 errored is not.
 
 #### Scheduling
