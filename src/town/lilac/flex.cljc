@@ -6,7 +6,8 @@
 
 (defprotocol Source
   (-send [src x] "Send a message to be handled by the source")
-  (-commit [src tx]))
+  (-commit [src tx])
+  (-discard [src tx]))
 
 (declare send!)
 
@@ -76,6 +77,8 @@
           tx-id)
       (throw (ex-info "Sent value outside of transaction"
                       {:value x :tx *current-tx*}))))
+  (-discard [_ tx-id]
+    (set! txs (dissoc txs tx-id)))
   (-commit [_ tx-id]
     (set! value (get txs tx-id))
     (set! txs (dissoc txs tx-id))
@@ -287,9 +290,13 @@
   [f]
   (binding [*current-tx* {:id (vswap! *tx-id inc)
                           :dirty []}]
-    (f)
-    #_(doseq [src (:dirty *current-tx*)]
-        (-commit src (:id *current-tx*)))
+    (try (f)
+         (catch Throwable e
+           (let [{:keys [id dirty]} *current-tx*]
+             (doseq [src dirty]
+              (-discard src id)))
+           ;; TODO does this fuck with the stacktrace?
+           (throw e)))
     (let [{:keys [id dirty]} *current-tx*]
       (sync! (mapcat #(-commit % id) dirty)))))
 
