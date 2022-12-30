@@ -280,27 +280,32 @@
                            next-deps))))))
 
 (defn send!
-  "Sends a value to a source. Same as calling it like a function."
+  "Sends a value to a source. Same as calling it like a function, but is inside
+  its own transaction."
   [src x]
-  (sync! (binding [*current-tx* {:id (vswap! *tx-id inc)
-                                 :dirty []}]
-           (-commit src (-send src x))))
+  (if (:id *current-tx*)
+    (-send src x)
+    (sync! (binding [*current-tx* {:id (vswap! *tx-id inc)
+                                   :dirty []}]
+             (-commit src (-send src x)))))
   @src)
 
 (defn transact!
   [f]
-  (binding [*current-tx* {:id (vswap! *tx-id inc)
-                          :dirty #{}}]
-    (try (f)
-         (catch #?(:clj Throwable :cljs js/Object) e
-           (let [{:keys [id dirty]} *current-tx*]
-             (doseq [src dirty]
-              (-discard src id)))
-           ;; TODO does this fuck with the stacktrace?
-           (throw e)))
-    (let [{:keys [id dirty]} *current-tx*]
-      (sync! (mapcat #(-commit % id) dirty)))
-    (:id *current-tx*)))
+  (if (:id *current-tx*)
+    (f)
+    (binding [*current-tx* {:id (vswap! *tx-id inc)
+                            :dirty #{}}]
+      (try (f)
+           (catch #?(:clj Throwable :cljs js/Object) e
+             (let [{:keys [id dirty]} *current-tx*]
+               (doseq [src dirty]
+                 (-discard src id)))
+             ;; TODO does this fuck with the stacktrace?
+             (throw e)))
+      (let [{:keys [id dirty]} *current-tx*]
+        (sync! (mapcat #(-commit % id) dirty)))
+      (:id *current-tx*))))
 
 (defmacro dosync
   [& body]

@@ -229,7 +229,27 @@
                     (is (= 9 @B))
                     (throw (ex-info "oh no" {})))))
       (is (= [0 9] @*calls))
-      (is (= 9 @B)))))
+      (is (= 9 @B))))
+  (testing "nested"
+    (let [*calls (atom [])
+          A (f/source 0)
+          B (f/signal (* @A @A))
+          Z (f/effect [_] (swap! *calls conj @B))
+          dispose (Z)]
+      (f/dosync
+       (A 1)
+       (f/send! A 2)
+       (A inc))
+      (is (= [0 9] @*calls))
+      (f/dosync
+       (A 1)
+       (f/dosync
+        (A 2)
+        (f/dosync
+         (A inc))
+        (A inc))
+       (A inc))
+      (is (= [0 9 25] @*calls)))))
 
 (comment
   (t/run-tests))
