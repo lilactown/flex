@@ -170,7 +170,12 @@
     (is (= [[0 0]] @*calls))
     (f/transact! (fn []
                    (A 1)
-                   (B 1)))
+                   (is (= 1 @A))
+                   (is (= 0 @B))
+                   (B 1)
+                   (is (= 1 @B))
+                   (is (= 1 @A))
+                   (is (= [0 0] @*calls))))
     (is (= [[0 0] [1 1]] @*calls)))
   (testing "exceptions"
     (let [*calls (atom [])

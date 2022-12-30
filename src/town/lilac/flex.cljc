@@ -83,13 +83,18 @@
   (#?(:clj deref :cljs -deref) [this]
     (when (some? *reactive*)
       (set! *reactive* (conj *reactive* this)))
-    value)
+    (if-let [tx-id *current-tx*]
+      (if (contains? txs tx-id) (get txs tx-id) value)
+      value))
   #?(:clj clojure.lang.IFn :cljs IFn)
-  (#?(:clj invoke :cljs -invoke) [this x] (send! this x))
+  (#?(:clj invoke :cljs -invoke) [this x]
+    (if *current-tx*
+      (-send this x)
+      (send! this x)))
   #?@(:clj ((applyTo [this args]
                      (when (not= 1 (count args))
-                       (throw (ex-info "Invalid arity" {:args args})))
-                     (send! this (first args))))))
+                       (throw (ex-info "Invalid arity" {:this this :args args})))
+                     (this (first args))))))
 
 (deftype SyncEffect [^:volatile-mutable dependencies
                      ^:volatile-mutable prev
@@ -271,7 +276,8 @@
 
 (defn transact!
   [f]
-  (f))
+  (binding [*current-tx* (vswap! *tx-id inc)]
+    (f)))
 
 (defmacro dosync
   [& body]
