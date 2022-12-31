@@ -249,7 +249,32 @@
          (A inc))
         (A inc))
        (A inc))
-      (is (= [0 9 25] @*calls)))))
+      (is (= [0 9 25] @*calls))))
+  (testing "nested error"
+    (let [*calls (atom [])
+          A (f/source 0)
+          B (f/signal (* @A @A))
+          Z (f/effect [_] (swap! *calls conj @B))
+          dispose (Z)]
+      (is (thrown?
+           #?(:clj ExceptionInfo :cljs js/Error)
+           (f/dosync
+            (A 1)
+            (f/send! A 2)
+            (throw (ex-info "oh no" {}))
+            (A inc))))
+      (is (= [0] @*calls))
+      (f/dosync
+       (A 1)
+       (is (thrown?
+            #?(:clj ExceptionInfo :cljs js/Error)
+            (f/dosync
+             (A 2)
+             (throw (ex-info "oh no" {}))
+             (A 3))))
+       (is (= 1 @A))
+       (A inc))
+      (is (= [0 4] @*calls)))))
 
 (comment
   (t/run-tests))

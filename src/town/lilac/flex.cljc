@@ -7,7 +7,8 @@
 (defprotocol Source
   (-send [src x] "Send a message to be handled by the source")
   (-commit [src tx])
-  (-discard [src tx]))
+  (-discard [src tx])
+  (-rebase [src parent-id child-id]))
 
 (declare send!)
 
@@ -70,8 +71,14 @@
   Source
   (-send [this x]
     (if-let [tx-id (:id *current-tx*)]
-      (do (if (fn? x) ; TODO handle multimethods
-            (set! txs (update txs tx-id (fnil x value)))
+      (do
+        (when-not (contains? txs tx-id)
+          ;; initialize value with either parent tx or current val
+          (if-let [parent-id (:parent *current-tx*)]
+            (set! txs (assoc txs tx-id (get txs parent-id)))
+            (set! txs (assoc txs tx-id value))))
+        (if (fn? x) ; TODO handle multimethods
+            (set! txs (update txs tx-id x))
             (set! txs (assoc txs tx-id x)))
           (set! *current-tx* (update *current-tx* :dirty conj this))
           tx-id)
@@ -85,6 +92,8 @@
     ;; TODO ensure that tx-id is monotonic
     (set! commit tx-id)
     dependents)
+  (-rebase [_ parent-id child-id]
+    (set! txs (assoc txs parent-id (get txs child-id))))
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
     (when (some? *reactive*)
@@ -292,20 +301,21 @@
 
 (defn transact!
   [f]
-  (if (:id *current-tx*)
-    (f)
-    (binding [*current-tx* {:id (vswap! *tx-id inc)
-                            :dirty #{}}]
-      (try (f)
-           (catch #?(:clj Throwable :cljs js/Object) e
-             (let [{:keys [id dirty]} *current-tx*]
-               (doseq [src dirty]
-                 (-discard src id)))
-             ;; TODO does this fuck with the stacktrace?
-             (throw e)))
-      (let [{:keys [id dirty]} *current-tx*]
-        (sync! (mapcat #(-commit % id) dirty)))
-      (:id *current-tx*))))
+  (binding [*current-tx* {:id (vswap! *tx-id inc)
+                          :parent (:id *current-tx*)
+                          :dirty #{}}]
+    (try (f)
+         (catch #?(:clj Throwable :cljs js/Object) e
+           (let [{:keys [id dirty]} *current-tx*]
+             (doseq [src dirty]
+               (-discard src id)))
+           ;; TODO does this fuck with the stacktrace?
+           (throw e)))
+    (let [{:keys [id dirty parent]} *current-tx*]
+      (if parent
+        (doseq [src dirty] (-rebase src parent id))
+        (sync! (mapcat #(-commit % id) dirty))))
+    (:id *current-tx*)))
 
 (defmacro dosync
   [& body]
