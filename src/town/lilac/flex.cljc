@@ -282,15 +282,16 @@
   (->SyncEffect #{} nil nil f))
 
 (defn listen
-  "Creates a reactive listener. Given a signal `s` and a callback `f`, returns a
-  listener object that when called like a function will call `f` anytime `s`
-  changes. Returns a function that when called, stops listening."
+  "Creates a reactive listener meant to do side effects. Given a signal `s`
+  and a callback `f`, returns a listener object that when called like a function
+  will call `f` anytime `s`changes. Returns a function that when called, stops
+  listening."
   [s f]
   (->SyncListener nil s f))
 
 (defmacro signal
-  "Creates a reactive signal object which yields the return value of the body
-  when dereferenced inside another reactive expression, e.g. `signal` or
+  "Creates a reactive memoized computation which yields the return value of the
+  body when dereferenced inside another reactive expression, e.g. `signal` or
   `effect`.
 
   Any signals or sources dereferenced inside the body will propagate their
@@ -347,7 +348,7 @@
              (-commit src (-send src x)))))
   @src)
 
-(defn transact!
+(defn batch-send!
   [f]
   (binding [*current-tx* {:id (vswap! *tx-id inc)
                           :parent (:id *current-tx*)
@@ -365,9 +366,9 @@
         (sync! (mapcat #(-commit % id) dirty))))
     (:id *current-tx*)))
 
-(defmacro dosync
+(defmacro batch
   [& body]
-  `(transact! (fn [] ~@body)))
+  `(batch-send! (fn [] ~@body)))
 
 (defn run!
   "Starts an effect. Same as calling it like a function."

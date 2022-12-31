@@ -45,8 +45,8 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 ;; print: 25
 ;; print: 36
 
-;; transactions batch their updates to avoid unnecessary updates
-(flex/dosync
+;; batch updates in transaction to avoid computing signals/effects until the end
+(flex/batch
  (counter inc)
  (counter inc)
  (counter inc)
@@ -68,7 +68,7 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Functional transduce/transform/reduce (`town.lilac.flex.xform`)
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
-- [x] Batching/transactions
+- [x] Batching
 - [x] Error handling
 - [x] Async support on JS
 - [ ] Multiplexing / multithreaded scheduling on JVM
@@ -88,12 +88,12 @@ glitches. Reagent propagates changes up the dependency chain and only
 re-calculates when dereferenced, which can avoid unnecessary work in some
 instances but can also lead to glitches.
 
-#### Transactions and errors
+#### Batching and errors
 
-When inside of a transaction, flex does not compute any dependent signals until
-the transaction has ended, even if the signal is explicitly dereferenced.
-When reagent is batching updates, it will calculate the result of a reaction
-with the latest value if it is dereferenced.
+When inside of a batched transaction, flex does not compute any dependent
+signals until the transaction has ended, even if the signal is explicitly
+dereferenced. When reagent is batching updates, it will calculate the result of
+a reaction with the latest value if it is dereferenced.
 
 If an error occurs inside of a flex transaction, all changes are rolled back and
 no signals are updated. If you are updating a group of ratoms in reagent, if any

@@ -188,15 +188,15 @@
         Z (f/effect [_] (swap! *calls conj [@A @B]))
         dispose (Z)]
     (is (= [[0 0]] @*calls))
-    (f/transact! (fn []
-                   (A 1)
-                   (is (= 1 @A))
-                   (is (= 0 @B))
-                   (B 1)
-                   (is (= 1 @B))
-                   (is (= 1 @A))
-                   (A 2)
-                   (is (= [[0 0]] @*calls))))
+    (f/batch-send! (fn []
+                     (A 1)
+                     (is (= 1 @A))
+                     (is (= 0 @B))
+                     (B 1)
+                     (is (= 1 @B))
+                     (is (= 1 @A))
+                     (A 2)
+                     (is (= [[0 0]] @*calls))))
     (is (= [[0 0] [2 1]] @*calls)))
   (testing "exceptions"
     (let [*calls (atom [])
@@ -211,24 +211,24 @@
           dispose (Z)]
       (is (= [1] @*calls))
       (is (thrown? #?(:clj ExceptionInfo :cljs js/Error)
-                   (f/transact! (fn []
-                                  (A 2)
-                                  (B 2)
-                                  (throw (ex-info "oh no" {}))))))
+                   (f/batch-send! (fn []
+                                    (A 2)
+                                    (B 2)
+                                    (throw (ex-info "oh no" {}))))))
       (is (= 1 @A))
       (is (= 1 @B))
       (is (= [1] @*calls))
       (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
-                   (f/transact! (fn []
-                                  (A 2)
-                                  (B 0)))))
+                   (f/batch-send! (fn []
+                                    (A 2)
+                                    (B 0)))))
       (is (= 2 @A))
       (is (= 0 @B))
       (is (= [1] @*calls))
-      (f/transact! (fn []
-                     (A 4)
-                     (B 0) ; since this is updated again, no error triggered
-                     (B 2)))
+      (f/batch-send! (fn []
+                       (A 4)
+                       (B 0) ; since this is updated again, no error triggered
+                       (B 2)))
       (is (= [1 2] @*calls))))
   (testing "signal computations are not tx local"
     (let [*calls (atom [])
@@ -236,14 +236,14 @@
           B (f/signal (* @A @A))
           Z (f/effect [_] (swap! *calls conj @B))
           dispose (Z)]
-      (f/dosync
+      (f/batch
        (A 2)
        (is (= 0 @B))
        (A 3))
       (is (= [0 9] @*calls))
       (is (thrown? #?(:clj ExceptionInfo
                       :cljs js/Error)
-                   (f/dosync
+                   (f/batch
                     (A 4)
                     (is (= 9 @B))
                     (throw (ex-info "oh no" {})))))
@@ -255,16 +255,16 @@
           B (f/signal (* @A @A))
           Z (f/effect [_] (swap! *calls conj @B))
           dispose (Z)]
-      (f/dosync
+      (f/batch
        (A 1)
        (f/send! A 2)
        (A inc))
       (is (= [0 9] @*calls))
-      (f/dosync
+      (f/batch
        (A 1)
-       (f/dosync
+       (f/batch
         (A 2)
-        (f/dosync
+        (f/batch
          (A inc))
         (A inc))
        (A inc))
@@ -277,17 +277,17 @@
           dispose (Z)]
       (is (thrown?
            #?(:clj ExceptionInfo :cljs js/Error)
-           (f/dosync
+           (f/batch
             (A 1)
             (f/send! A 2)
             (throw (ex-info "oh no" {}))
             (A inc))))
       (is (= [0] @*calls))
-      (f/dosync
+      (f/batch
        (A 1)
        (is (thrown?
             #?(:clj ExceptionInfo :cljs js/Error)
-            (f/dosync
+            (f/batch
              (A 2)
              (throw (ex-info "oh no" {}))
              (A 3))))

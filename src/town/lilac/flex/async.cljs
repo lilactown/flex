@@ -9,11 +9,11 @@
       (:unresolved :ready :error)
       (set! p (.then (fetcher)
                      (fn [x]
-                       (flex/dosync
+                       (flex/batch
                         (state :ready)
                         (value x)))
                      (fn [e]
-                       (flex/dosync
+                       (flex/batch
                         (state :error)
                         (error e)))))
       nil)
