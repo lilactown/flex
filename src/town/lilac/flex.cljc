@@ -337,15 +337,20 @@
                            #{}
                            next-deps))))))
 
+(def ^:dynamic *skip-updates* false)
+
 (defn send!
   "Sends a value to a source. Same as calling it like a function, but is inside
   its own transaction."
   [src x]
-  (if (:id *current-tx*)
-    (-send src x)
-    (sync! (binding [*current-tx* {:id (vswap! *tx-id inc)
-                                   :dirty []}]
-             (-commit src (-send src x)))))
+  (cond
+    (:id *current-tx*) (-send src x)
+    *skip-updates* (binding [*current-tx* {:id (vswap! *tx-id inc)
+                                           :dirty []}]
+                     (-commit src (-send src x))) ; no `sync!`
+    :else (sync! (binding [*current-tx* {:id (vswap! *tx-id inc)
+                                         :dirty []}]
+                   (-commit src (-send src x)))))
   @src)
 
 (defn batch-send!
@@ -395,3 +400,8 @@
   [s f]
   (-add-on-error s f)
   s)
+
+(defmacro skip
+  [& body]
+  `(binding [*skip-updates* true]
+    ~@body))

@@ -315,5 +315,17 @@
     (is (= [1] @*calls))
     (is (= 1 @*errors))))
 
+(deftest skip
+  (let [*calls (atom [])
+        A (f/source 0)
+        B (f/signal (inc @A))
+        Z (f/effect [_] (swap! *calls conj @B))
+        dispose (Z)]
+    (A 1)
+    (A 2)
+    (f/skip (A 3) (A 4))
+    (A 5)
+    (is (= [1 2 3 6] @*calls))))
+
 (comment
   (t/run-tests))
