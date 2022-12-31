@@ -78,7 +78,7 @@
   "Returns a reactive signal which takes each value emitted by `s` and computes
   a new value by calling `(f prev new)`. State is reset on disposal."
   [f init s]
-  (->SyncSignalTransduction flex/sentinel #{} s [] [] nil init identity f nil))
+  (transduce identity f init nil))
 
 (defn transform
   "Returns a reactive signal that uses the transducer `xform` on each value
