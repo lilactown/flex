@@ -5,25 +5,26 @@
 
 (deftype SyncAtomWrapper [^:volatile-mutable watchers
                           ^:volatile-mutable dispose
-                          updater
+                          swapper
+                          resetter
                           s]
   #?@(:clj
       (clojure.lang.IAtom
-       (swap [_ f] (updater f))
-       (swap [_ f a] (updater #(f % a)))
-       (swap [_ f a b] (updater #(f % a b)))
-       (swap [_ f a b args] (updater #(apply f % a b args)))
-       (reset [_ x] (updater x))
-       (compareAndSet [_ o n] (updater n) (= o n)))
+       (swap [_ f] (swapper f))
+       (swap [_ f a] (swapper #(f % a)))
+       (swap [_ f a b] (swapper #(f % a b)))
+       (swap [_ f a b args] (swapper #(apply f % a b args)))
+       (reset [_ x] (resetter x))
+       (compareAndSet [_ o n] (resetter n) (= o n)))
       :cljs
       (IAtom
        ISwap
-       (-swap! [_ f] (updater f))
-       (-swap! [_ f a] (updater #(f % a)))
-       (-swap! [_ f a b] (updater #(f % a b)))
-       (-swap! [_ f a b args] (updater #(apply f % a b args)))
+       (-swap! [_ f] (swapper f))
+       (-swap! [_ f a] (swapper #(f % a)))
+       (-swap! [_ f a b] (swapper #(f % a b)))
+       (-swap! [_ f a b args] (swapper #(apply f % a b args)))
        IReset
-       (-reset! [_ x] (updater x))))
+       (-reset! [_ x] (resetter x))))
   #?(:clj clojure.lang.IRef :cljs IWatchable)
   (#?(:clj addWatch :cljs -add-watch) [this key f]
     (when (nil? dispose)
@@ -43,7 +44,9 @@
 
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [_]
-    @s))
+    (if (instance? #?(:clj SyncSource :cljs flex/SyncSource) s)
+      @s
+      (flex/-touch s))))
 
 (defn watch
   "Returns a reactive source that watches the atom `iref` and updates its value
@@ -58,6 +61,10 @@
   "Returns a wrapper around a reactive object `s` that implements the Atom
   interface. It lazily constructs an effect on first watch that is disposed when
   the last watcher is removed."
-  ([s] (of s (when (instance? #?(:clj SyncSource :cljs flex/SyncSource) s) s)))
-  ([s updater]
-   (->SyncAtomWrapper {} nil updater s)))
+  ([s] (let [updater (when (instance?
+                            #?(:clj SyncSource :cljs flex/SyncSource)
+                            s)
+                       s)]
+         (of s updater updater)))
+  ([s swapper resetter]
+   (->SyncAtomWrapper {} nil swapper resetter s)))
