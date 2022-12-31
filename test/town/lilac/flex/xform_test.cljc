@@ -19,12 +19,12 @@
     (A 4)
     (is(= [[0] [0 1] [0 1 2] [0 1 2 3]] @*calls))))
 
-(deftest transform
+(deftest eduction-test
   (let [*calls (atom [])
         A (f/source 0)
-        B (xf/transform (filter even?) A)
+        B (xf/eduction (filter even?) A)
         C (f/signal (* @B @B))
-        D (xf/transform (map inc) C)
+        D (xf/eduction (map inc) C)
         Z (f/effect [_] (swap! *calls conj @D))
         dispose (Z)]
     (is (= [1] @*calls))
@@ -73,6 +73,22 @@
       (is (= [[] [2] [2 3] [2 3 4] []] @*calls))
       (A 5) (A 6)
       (is (= [[] [2] [2 3] [2 3 4] [] [6]] @*calls)))))
+
+(deftest sliding
+  (let [*calls (atom [])
+        A (f/source 0)
+        B (xf/sliding 3 A)
+        Z (f/effect [_] (swap! *calls conj @B))
+        dispose (Z)]
+    (A 1)
+    (A 2)
+    (A 3)
+    (A 4)
+    (is (= '[(0) (1 0) (2 1 0) (3 2 1) (4 3 2)] @*calls))
+    (testing "state reset on dispose"
+      (dispose)
+      (Z)
+      (is (= '[(0) (1 0) (2 1 0) (3 2 1) (4 3 2) (4)] @*calls)))))
 
 (comment
   (t/run-tests))

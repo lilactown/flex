@@ -1,7 +1,7 @@
 (ns town.lilac.flex.xform
   (:require
    [town.lilac.flex :as flex])
-  (:refer-clojure :exclude [transduce reduce]))
+  (:refer-clojure :exclude [transduce reduce eduction]))
 
 (deftype SyncSignalTransduction [^:volatile-mutable cache
                                  ^:volatile-mutable dependents
@@ -80,7 +80,7 @@
   [f init s]
   (transduce identity f init s))
 
-(defn transform
+(defn eduction
   "Returns a reactive signal that uses the transducer `xform` on each value
   produced by reactive obj `s`, emitting the latest value and discarding
   previous. State is reset on disposal."
@@ -96,3 +96,10 @@
   ([coll s] (collect coll identity s))
   ([coll xform s]
    (transduce xform conj coll s)))
+
+(defn sliding
+  [n s]
+  (reduce (fn [acc x]
+            (conj (take (dec n) acc) x))
+          ()
+          s))
