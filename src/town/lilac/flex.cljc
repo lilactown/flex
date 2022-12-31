@@ -2,7 +2,7 @@
   (:require
    [clojure.set :as set])
   #?(:cljs (:require-macros [town.lilac.flex]))
-  (:refer-clojure :exclude [run! dosync]))
+  (:refer-clojure :exclude [run!]))
 
 (defprotocol Source
   (-send [src x] "Send a message to be handled by the source")
@@ -284,7 +284,7 @@
 (defn listen
   "Creates a reactive listener meant to do side effects. Given a signal `s`
   and a callback `f`, returns a listener object that when called like a function
-  will call `f` anytime `s`changes. Returns a function that when called, stops
+  will call `f` anytime `s` changes. Returns a function that when called, stops
   listening."
   [s f]
   (->SyncListener nil s f))
@@ -309,9 +309,9 @@
   (the previous value returned by the body) and then a series of expressions
   to be evaluated.
 
-  Returns a function that when called executes the body and connects any
-  reactive objects dereferenced in the body, so that they start computing and
-  reacting to upstream changes.
+  Returns a function that when called immediately executes the body and connects
+  any reactive objects dereferenced in the body, so that they start computing
+  and reacting to upstream changes.
 
   Calling the function returns a \"dispose\" function which when called will
   stop the effect from continuing to execute, and cleans up any signals that are
@@ -349,6 +349,10 @@
   @src)
 
 (defn batch-send!
+  "Calls `f` and batches all updates to sources together so that any dependent
+  signals/effects are computed only after all changes have been made in.
+  If an error occurs at any time during `body`, none of the changes will be
+  applied."
   [f]
   (binding [*current-tx* {:id (vswap! *tx-id inc)
                           :parent (:id *current-tx*)
@@ -367,6 +371,9 @@
     (:id *current-tx*)))
 
 (defmacro batch
+  "Batches all updates to sources together so that any dependent signals/effects
+  are computed only after all changes have been made in `body`. If an error
+  occurs at any time during `body`, none of the changes will be applied."
   [& body]
   `(batch-send! (fn [] ~@body)))
 
