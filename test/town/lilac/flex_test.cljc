@@ -327,5 +327,35 @@
     (A 5)
     (is (= [1 2 3 6] @*calls))))
 
+(deftest untrack
+  (let [*calls (atom [])
+        A (f/source 0)
+        B (f/source 0)
+        C (f/signal [@A (f/untrack @B)])
+        Z (f/effect [_] (swap! *calls conj @C))
+        dispose (Z)]
+    (A 1)
+    (B 1)
+    (A 2)
+    (is (= [[0 0] [1 0] [2 1]] @*calls)))
+  (testing "conditional"
+    (let [*calls (atom [])
+          A (f/source 0)
+          B (f/source 0)
+          C (f/signal (if (even? @A)
+                        [@A @B]
+                        [@A (f/untrack @B)]))
+          Z (f/effect [_] (swap! *calls conj @C))
+          dispose (Z)]
+      (A 1)
+      (B 1)
+      (A 2)
+      (is (= [[0 0] [1 0] [2 1]] @*calls))
+      (B 2)
+      (is (= [[0 0] [1 0] [2 1] [2 2]] @*calls))
+      (A 3)
+      (B 3)
+      (is (= [[0 0] [1 0] [2 1] [2 2] [3 2]] @*calls)))))
+
 (comment
   (t/run-tests))

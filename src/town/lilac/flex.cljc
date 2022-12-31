@@ -404,4 +404,9 @@
 (defmacro skip
   [& body]
   `(binding [*skip-updates* true]
-    ~@body))
+     ~@body))
+
+(defmacro untrack
+  [& body]
+  `(binding [*reactive* nil]
+     ~@body))
