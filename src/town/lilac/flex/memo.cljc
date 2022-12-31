@@ -4,9 +4,9 @@
   (:refer-clojure :exclude [memoize]))
 
 (defn memoize
-  "Takes a function `f` which returns a signal and returns a new function.
-  When called looks up in a cache whether a signal was previously constructed
-  using the same args. If it has, and that signal has not been disposed, it will
+  "Takes a function `f` which returns a signal. Returns a new function that when
+  called looks up in a cache whether a signal was previously constructed using
+  the same args. If it has, and that signal has not been disposed, it will
   return the previous signal.
 
   When the signal is disposed, it evicts itself from the cache."
