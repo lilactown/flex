@@ -10,7 +10,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "ad0a77d359cacbad68f0c6766a011820dfaf9f26"
+                 :git/sha "fdc20d963fea09ba74fb8abbfef44d7b84374b1b"
 ```
 
 ## Example
@@ -69,7 +69,7 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
 - [x] Batching/transactions
-- [ ] Error handling
+- [x] Error handling
 - [ ] Babashka support
 - [ ] Multiplexing / multithreaded scheduling on JVM
 - [ ] Async support on JS
