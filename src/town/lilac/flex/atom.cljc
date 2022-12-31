@@ -29,6 +29,11 @@
        (-swap! [_ f a b args] (swapper #(apply f % a b args)))
        IReset
        (-reset! [_ x] (resetter x))))
+  flex/Disposable
+  (-add-on-dispose [_ f] nil)
+  (-dispose [_]
+    (set! watchers nil)
+    (and dispose (dispose)))
   #?(:clj clojure.lang.IRef :cljs IWatchable)
   (#?(:clj addWatch :cljs -add-watch) [this key f]
     (when (nil? dispose)
@@ -40,13 +45,18 @@
         (set! dispose (fx))))
     (set! watchers (assoc watchers key f))
     this)
-  (#?(:clj removeWatch :cljs -remove-watch) [_ key]
+  (#?(:clj removeWatch :cljs -remove-watch) [this key]
     (set! watchers (dissoc watchers key))
-    (when (empty? watchers)
-      (dispose)
-      (set! dispose nil)))
+    this)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
-  (#?(:clj deref :cljs -deref) [_]
+  (#?(:clj deref :cljs -deref) [this]
+    (when (nil? dispose)
+      (let [fx (flex/effect
+                [prev]
+                (doseq [[k f] (.-watchers this)]
+                  (f k this prev @s))
+                @s)]
+        (set! dispose (fx))))
     @s))
 
 (defn watch
@@ -58,16 +68,21 @@
     (add-watch iref k (fn [_ _ _ v] (s v)))
     s))
 
+;; TODO add tests for GC
 (defn of
   "Returns a wrapper around a reactive object `s` that implements the Atom
-  interface. It lazily constructs an effect on first watch that is disposed when
-  the last watcher is removed."
-  ([s] (let [updater (when (instance?
-                            #?(:clj SyncSource :cljs flex/SyncSource)
-                            s)
-                       s)]
-         (of s {:swap updater :reset updater})))
-  ([s {:keys [swap reset defer?]}]
-   (let [wrapper (->SyncAtomWrapper {} nil swap reset s)]
-     (when-not defer? (add-watch wrapper (gensym "of") (fn [_ _ _ _])))
+  interface. On first deref/add-watch, will construct an effect that will update
+  the atom until the atom is GC'd.
+
+  Optionally takes a map with the following:
+  `:swap` - function to call when `swap!` is called to update upstream state
+  `:reset` - function to call when `reset!` is called to update upstream state"
+  ([s] (of s nil))
+  ([s {:keys [swap reset]}]
+   (let [updater (when (instance?
+                        #?(:clj SyncSource :cljs flex/SyncSource)
+                        s)
+                   s)
+         wrapper (->SyncAtomWrapper
+                  {} nil (or swap updater) (or reset updater) s)]
      wrapper)))
