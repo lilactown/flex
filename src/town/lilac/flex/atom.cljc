@@ -1,4 +1,4 @@
-(ns town.lilac.flex.watch
+(ns town.lilac.flex.atom
   (:require
    [town.lilac.flex :as flex]))
 
@@ -27,8 +27,8 @@
     @s))
 
 
-(defn watcher
-  "Returns a wrapper around a reactive signal `s` that implements the interface
+(defn watch
+  "Returns a wrapper around a reactive object `s` that implements the interface
   for `add-watch` and `remove-watch`. It lazily constructs an effect on first
   watch that is disposed when the last watcher is removed."
   [s]

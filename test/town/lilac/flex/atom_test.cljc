@@ -1,14 +1,14 @@
-(ns town.lilac.flex.watch-test
+(ns town.lilac.flex.atom-test
   (:require
    [clojure.test :as t :refer [deftest is testing]]
    [town.lilac.flex :as f]
-   [town.lilac.flex.watch :as watch]))
+   [town.lilac.flex.atom :as atom]))
 
 
 (deftest watcher
   (let [*calls (atom [])
         A (f/source 0)
-        W (watch/watcher A)]
+        W (atom/watch A)]
     (add-watch W :t (fn [k o p v]
                         (swap! *calls conj [k p v])))
     (A 1)
