@@ -33,11 +33,12 @@
     value retrieved by `fetcher`
 
   The resource also contains the following keys:
-  `:state` - #{:unresolved :pending :ready :refreshing :error}
-  `:error` - a reactive object containing last error from `fetcher`
-  `:value` - a reactive object containing last value retrieved by `fetcher`
-  `:loading?` - a reactive object containing true/false whether currently
-                waiting for a promise returned by `fetcher` to fulfill
+  `:state` - a source containing one of :unresolved, :pending, :ready,
+             :refreshing, :error
+  `:error` - a source containing last error from `fetcher`
+  `:value` - a source containing last value retrieved by `fetcher`
+  `:loading?` - a signal containing true/false whether currently waiting for a
+                promise returned by `fetcher` to fulfill
   `:fetcher` - the original `fetcher` function
   `:p` - the last promise returned by `fetcher`"
   [fetcher]
