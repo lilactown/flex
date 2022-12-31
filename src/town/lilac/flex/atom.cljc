@@ -9,7 +9,11 @@
                           resetter
                           s]
   #?@(:clj
-      (clojure.lang.IAtom
+      (Object
+       (finalize
+        [_]
+        (and dispose (dispose)))
+       clojure.lang.IAtom
        (swap [_ f] (swapper f))
        (swap [_ f a] (swapper #(f % a)))
        (swap [_ f a b] (swapper #(f % a b)))
@@ -41,12 +45,9 @@
     (when (empty? watchers)
       (dispose)
       (set! dispose nil)))
-
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [_]
-    (if (instance? #?(:clj SyncSource :cljs flex/SyncSource) s)
-      @s
-      (flex/-touch s))))
+    @s))
 
 (defn watch
   "Returns a reactive source that watches the atom `iref` and updates its value
@@ -65,6 +66,8 @@
                             #?(:clj SyncSource :cljs flex/SyncSource)
                             s)
                        s)]
-         (of s updater updater)))
-  ([s swapper resetter]
-   (->SyncAtomWrapper {} nil swapper resetter s)))
+         (of s {:swap updater :reset updater})))
+  ([s {:keys [swap reset defer?]}]
+   (let [wrapper (->SyncAtomWrapper {} nil swap reset s)]
+     (when-not defer? (add-watch wrapper (gensym "of") (fn [_ _ _ _])))
+     wrapper)))
