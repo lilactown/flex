@@ -30,8 +30,8 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 ;; an effect that runs side effects when its dependencies change
 (def prn-fx (flex/listen counter-sq prn))
 
+;; start the listener
 (def dispose (prn-fx))
-;; print: 0
 
 (counter 1)
 ;; print: 1

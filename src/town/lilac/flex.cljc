@@ -129,8 +129,7 @@
     (-disconnect dep this))
   Sink
   (-run! [this]
-    (binding [*reactive* #{}]
-      (f @dep))
+    (-touch dep)
     (set! order (inc (-get-order dep)))
     (-connect dep this)
     (fn dispose [] (-dispose this)))
