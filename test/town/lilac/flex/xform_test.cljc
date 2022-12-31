@@ -4,6 +4,21 @@
    [town.lilac.flex :as f]
    [town.lilac.flex.xform :as xf]))
 
+(deftest reduce-test
+  (let [*calls (atom [])
+        A (f/source 0)
+        B (xf/reduce conj [] A)
+        Z (f/effect [_] (swap! *calls conj @B))
+        dispose (Z)]
+    (is (= [[0]] @*calls))
+    (A 1)
+    (is (= [[0] [0 1]] @*calls))
+    (A 2) (A 3)
+    (is (= [[0] [0 1] [0 1 2] [0 1 2 3]] @*calls))
+    (dispose)
+    (A 4)
+    (is(= [[0] [0 1] [0 1 2] [0 1 2 3]] @*calls))))
+
 (deftest transform
   (let [*calls (atom [])
         A (f/source 0)

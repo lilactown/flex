@@ -1,7 +1,7 @@
 (ns town.lilac.flex.xform
   (:require
    [town.lilac.flex :as flex])
-  (:refer-clojure :exclude [transduce]))
+  (:refer-clojure :exclude [transduce reduce]))
 
 (deftype SyncSignalTransduction [^:volatile-mutable cache
                                  ^:volatile-mutable dependents
@@ -74,17 +74,23 @@
   [xform rf init s]
   (->SyncSignalTransduction flex/sentinel #{} s [] [] nil init xform rf nil))
 
+(defn reduce
+  "Returns a reactive signal which takes each value emitted by `s` and computes
+  a new value by calling `(f prev new)`. State is reset on disposal."
+  [f init s]
+  (->SyncSignalTransduction flex/sentinel #{} s [] [] nil init identity f nil))
+
 (defn transform
   "Returns a reactive signal that uses the transducer `xform` on each value
   produced by reactive obj `s`, emitting the latest value and discarding
-  previous."
+  previous. State is reset on disposal."
   [xform s]
   (transduce xform (fn [_ x] x) nil s))
 
 (defn collect
   "Takes an initial `coll`, an `xform` and a reactive obj `s`.
   Returns a reactive signal that `conj`s each value emitted by `s` on to `coll`.
-  A transducer may be applied.
+  A transducer may be applied. State is reset on disposal.
 
   Like `clojure.core/into` for reactive signals."
   ([coll s] (collect coll identity s))
