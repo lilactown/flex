@@ -98,6 +98,9 @@
    (transduce xform conj coll s)))
 
 (defn sliding
+  "Takes a max window size `n` and signal `s` and returns a reactive signal that
+  produces a sequence of the last `n` values emitted by `s`, with the latest
+  being the first value in the sequence. State is reset on disposal."
   [n s]
   (reduce (fn [acc x]
             (conj (take (dec n) acc) x))
