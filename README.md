@@ -2,7 +2,8 @@
 
 flex is a library for building reactive computation graphs in Clojure(Script).
 It gets its inspiration from [reagent](https://github.com/reagent-project/reagent)
-and its lineage ([reflex](https://github.com/lynaghk/reflex), KnockoutJS).
+and its lineage ([reflex](https://github.com/lynaghk/reflex), KnockoutJS,
+[S.js](https://github.com/adamhaile/S)).
 
 ## Install
 
