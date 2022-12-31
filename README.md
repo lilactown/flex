@@ -10,7 +10,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "fdc20d963fea09ba74fb8abbfef44d7b84374b1b"
+                 :git/sha "5dc57072d1e8fb03c4fae16cc626a1a391f5b89b"
 ```
 
 ## Example
@@ -28,7 +28,7 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 (def counter-sq (flex/signal (* @state @state)))
 
 ;; an effect that runs side effects when its dependencies change
-(def prn-fx (flex/effect [_prev] (prn @counter-sq)))
+(def prn-fx (flex/listen counter-sq prn))
 
 (def dispose (prn-fx))
 ;; print: 0
@@ -70,9 +70,9 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
 - [x] Batching/transactions
 - [x] Error handling
-- [ ] Babashka support
+- [x] Async support on JS
 - [ ] Multiplexing / multithreaded scheduling on JVM
-- [ ] Async support on JS
+- [ ] Babashka support
 
 ### Differences from reagent
 
