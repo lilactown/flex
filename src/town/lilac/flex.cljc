@@ -16,7 +16,9 @@
   (-run! [sink] "Run the side effect of a sink"))
 
 (defprotocol Signal
-  (-propagate [s]))
+  (-propagate [s])
+  (-add-on-error [s f])
+  (-error [o e]))
 
 (defprotocol Reactive
   (-connect [o dep])
@@ -153,6 +155,7 @@
                      ^:volatile-mutable dependents
                      ^:volatile-mutable dependencies
                      ^:volatile-mutable on-dispose-fns
+                     ^:volatile-mutable on-error-fns
                      ^:volatile-mutable order
                      f]
   Debug
@@ -204,6 +207,12 @@
         (when (not= cache newv)
           (set! cache newv)
           dependents))))
+  (-add-on-error [this f]
+    (set! on-error-fns (conj on-error-fns f))
+    this)
+  (-error [_ e]
+    (doseq [f on-error-fns]
+      (f e)))
   Disposable
   (-dispose [this]
     (doseq [f on-dispose-fns]
@@ -238,7 +247,7 @@
 (defn create-signal
   "Creates a reactive signal object. Used by `signal`."
   [f]
-  (->SyncSignal sentinel #{} #{} [] nil f))
+  (->SyncSignal sentinel #{} #{} [] [] nil f))
 
 (defn create-effect
   "Creates a reactive effect object. Used by `effect`."
@@ -331,4 +340,11 @@
   longer listened to by any other signal or effect and is cleaned up."
   [s f]
   (-add-on-dispose s f)
+  s)
+
+(defn on-error
+  "Adds a callback function to a signal to be called when the signal throws an
+  error during computation."
+  [s f]
+  (-add-on-error s f)
   s)

@@ -7,6 +7,7 @@
                                  ^:volatile-mutable dependents
                                  dependency
                                  ^:volatile-mutable on-dispose-fns
+                                 ^:volatile-mutable on-error-fns
                                  ^:volatile-mutable order
                                  init
                                  xform
@@ -57,7 +58,13 @@
     (let [newv (rf' cache (flex/-touch dependency))]
       (when (not= cache newv)
         (set! cache newv)
-        dependents))))
+        dependents)))
+  (-add-on-error [this f]
+    (set! on-error-fns (conj on-error-fns f))
+    this)
+  (-error [_ e]
+    (doseq [f on-error-fns]
+      (f e))))
 
 (defn transduce
   "Returns a reactive signal which takes each value emitted by reactive obj `s`
@@ -65,7 +72,7 @@
   Works with all clojure.core transducers, including stateful ones.
   State is reset on disposal."
   [xform rf init s]
-  (->SyncSignalTransduction flex/sentinel #{} s [] nil init xform rf nil))
+  (->SyncSignalTransduction flex/sentinel #{} s [] [] nil init xform rf nil))
 
 (defn transform
   "Returns a reactive signal that uses the transducer `xform` on each value
