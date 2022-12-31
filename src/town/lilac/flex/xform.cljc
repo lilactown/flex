@@ -78,7 +78,7 @@
   "Returns a reactive signal which takes each value emitted by `s` and computes
   a new value by calling `(f prev new)`. State is reset on disposal."
   [f init s]
-  (transduce identity f init nil))
+  (transduce identity f init s))
 
 (defn transform
   "Returns a reactive signal that uses the transducer `xform` on each value
