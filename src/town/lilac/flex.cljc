@@ -293,7 +293,11 @@
       ;; guaranteed to always have a bigger order in deps
       (recur (heap (dissoc deps order)
                    (reduce (fn [dependents dep]
-                             (into dependents (-propagate dep)))
+                             (into dependents (try
+                                                (-propagate dep)
+                                                (catch Throwable e
+                                                  (-error dep e)
+                                                  (throw e)))))
                            #{}
                            next-deps))))))
 

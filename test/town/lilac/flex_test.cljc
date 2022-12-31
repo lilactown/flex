@@ -290,12 +290,10 @@
                             (swap! *errors inc))))
         Z (f/effect [_] (swap! *calls conj @C))
         dispose (Z)]
-    (A 1)
-    (is (= [1 2] @*calls))
     (is (thrown?
          #?(:clj ArithmeticException :cljs js/Error)
          (B 0)))
-    (is (= [1 2] @*calls))
+    (is (= [1] @*calls))
     (is (= 1 @*errors))))
 
 (comment
