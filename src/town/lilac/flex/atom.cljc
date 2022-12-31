@@ -45,7 +45,6 @@
   (#?(:clj deref :cljs -deref) [_]
     @s))
 
-
 (defn watch
   "Returns a reactive source that watches the atom `iref` and updates its value
   when it changes."
@@ -55,14 +54,10 @@
     (add-watch iref k (fn [_ _ _ v] (s v)))
     s))
 
-
 (defn of
   "Returns a wrapper around a reactive object `s` that implements the Atom
   interface. It lazily constructs an effect on first watch that is disposed when
   the last watcher is removed."
-  ([s]
-   (->SyncAtomWrapper
-    {} nil
-    (when (instance? #?(:clj SyncSource
-                        :cljs flex/SyncSource) s) s)
-    s)))
+  ([s] (of s (when (instance? #?(:clj SyncSource :cljs flex/SyncSource) s) s)))
+  ([s updater]
+   (->SyncAtomWrapper {} nil updater s)))
