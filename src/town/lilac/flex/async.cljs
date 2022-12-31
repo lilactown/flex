@@ -29,8 +29,8 @@
   "Returns a resource record, with the following properties:
   - Calling like a function will call the `fetcher`, a function that returns a
   promise, updating the state of the resource as it proceeds.
-  - Derefing the resource will return the a reactive object containing the last
-    value retrieved by `fetcher`
+  - Derefing the resource acts like a `source` and will produce the last value
+    retrieved by `fetcher`
 
   The resource also contains the following keys:
   `:state` - a source containing one of :unresolved, :pending, :ready,
