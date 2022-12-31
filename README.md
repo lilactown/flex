@@ -82,10 +82,11 @@ flex supports Clojure on the JVM. Reagent is ClojureScript (JS) only
 
 #### Eager vs lazy
 
-flex computes "live" signals eagerly, and uses a topological ordering to ensure
-that calculations are only done once and avoid glitches. Reagent propagates
-changes up the dependency chain and only re-calculates when dereferenced, which
-can avoid unnecessary work in some instances but can also lead to glitches.
+flex computes "live" signals eagerly after a source has changed, and uses a
+topological ordering to ensure that calculations are only done once and avoid
+glitches. Reagent propagates changes up the dependency chain and only
+re-calculates when dereferenced, which can avoid unnecessary work in some
+instances but can also lead to glitches.
 
 #### Transactions and errors
 
@@ -95,9 +96,9 @@ When reagent is batching updates, it will calculate the result of a reaction
 with the latest value if it is dereferenced.
 
 If an error occurs inside of a flex transaction, all changes are rolled back and
-no signals are updated. If a change to one reagent atom results in an error, the
-atom and any dependent signals are left in that state while the computation that
-errored is not.
+no signals are updated. If you are updating a group of ratoms in reagent, if any
+error occurs in between updates then you can end up in a state where some of the
+ratoms are up to date and others are not.
 
 #### Scheduling
 
