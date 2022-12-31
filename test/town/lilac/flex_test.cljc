@@ -276,5 +276,27 @@
        (A inc))
       (is (= [0 4] @*calls)))))
 
+(deftest signal-error
+  (let [*calls (atom [])
+        *errors (atom 0)
+        A (f/source 1)
+        B (f/source 1)
+        C (-> (f/signal #?(:clj (/ @A @B)
+                           :cljs (let [x (/ @A @B)]
+                                   (when (= ##Inf x)
+                                     (throw (ex-info "Divide by zero" {})))
+                                   x)))
+              (f/on-error (fn [_e]
+                            (swap! *errors inc))))
+        Z (f/effect [_] (swap! *calls conj @C))
+        dispose (Z)]
+    (A 1)
+    (is (= [1 2] @*calls))
+    (is (thrown?
+         #?(:clj ArithmeticException :cljs js/Error)
+         (B 0)))
+    (is (= [1 2] @*calls))
+    (is (= 1 @*errors))))
+
 (comment
   (t/run-tests))
