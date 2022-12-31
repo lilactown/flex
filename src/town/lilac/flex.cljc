@@ -113,6 +113,34 @@
                        (throw (ex-info "Invalid arity" {:this this :args args})))
                      (this (first args))))))
 
+(deftype SyncListener [^:volatile-mutable order dep f]
+  Debug
+  (dump [_]
+    {:order order :dep dep :f f})
+  Signal
+  (-propagate [this]
+    (set! order (inc (-get-order dep)))
+    (f @dep)
+    nil)
+  Ordered
+  (-get-order [_] order)
+  Disposable
+  (-dispose [this]
+    (-disconnect dep this))
+  Sink
+  (-run! [this]
+    (set! order (inc (-get-order dep)))
+    (binding [*reactive* #{}]
+      (f @dep))
+    (-connect dep this)
+    (fn dispose [] (-dispose this)))
+  #?(:clj clojure.lang.IFn :cljs IFn)
+  (#?(:clj invoke :cljs -invoke) [this] (-run! this))
+  #?@(:clj ((applyTo [this args]
+                     (when (pos? (count args))
+                       (throw (ex-info "Invalid arity" {:args args})))
+                     (-run! this)))))
+
 (deftype SyncEffect [^:volatile-mutable dependencies
                      ^:volatile-mutable prev
                      ^:volatile-mutable order
@@ -253,6 +281,13 @@
   "Creates a reactive effect object. Used by `effect`."
   [f]
   (->SyncEffect #{} nil nil f))
+
+(defn listen
+  "Creates a reactive listener. Given a signal `s` and a callback `f`, returns a
+  listener object that when called like a function will call `f` anytime `s`
+  changes. Returns a function that when called, stops listening."
+  [s f]
+  (->SyncListener nil s f))
 
 (defmacro signal
   "Creates a reactive signal object which yields the return value of the body

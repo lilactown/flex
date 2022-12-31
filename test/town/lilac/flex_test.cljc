@@ -9,7 +9,7 @@
   (let [*calls (atom [])
         A (f/source 2)
         B (f/signal (* @A @A))
-        Z (f/effect [_] (swap! *calls conj @B))]
+        Z (f/listen B #(swap! *calls conj %))]
     (is (= 2 @A))
     (is (= f/sentinel @B))
     (let [dispose (Z)]
