@@ -119,8 +119,8 @@
     {:order order :dep dep :f f})
   Signal
   (-propagate [this]
-    (set! order (inc (-get-order dep)))
     (f @dep)
+    (set! order (inc (-get-order dep)))
     nil)
   Ordered
   (-get-order [_] order)
@@ -129,9 +129,9 @@
     (-disconnect dep this))
   Sink
   (-run! [this]
-    (set! order (inc (-get-order dep)))
     (binding [*reactive* #{}]
       (f @dep))
+    (set! order (inc (-get-order dep)))
     (-connect dep this)
     (fn dispose [] (-dispose this)))
   #?(:clj clojure.lang.IFn :cljs IFn)
