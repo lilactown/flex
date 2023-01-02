@@ -2,7 +2,7 @@
   (:require
    [clojure.test :as t :refer [async deftest is testing]]
    [town.lilac.flex :as f]
-   [town.lilac.flex.async :as a]))
+   [town.lilac.flex.promise :as p]))
 
 (defn sleep
   [ms]
@@ -14,7 +14,7 @@
 (deftest resource
   (async
    done
-   (let [r (a/resource (fn []
+   (let [r (p/resource (fn []
                          (-> (sleep 100)
                              (.then (constantly 42)))))
          *calls (atom [])
