@@ -49,4 +49,4 @@
                   (case @state
                     (:pending :refreshing) true
                     false))]
-    (->Resource state error value loading? fetcher nil)))
+    ((->Resource state error value loading? fetcher nil))))
