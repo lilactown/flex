@@ -1,4 +1,4 @@
-(ns town.lilac.flex.async
+(ns town.lilac.flex.promise
   (:require
    [town.lilac.flex :as flex]))
 

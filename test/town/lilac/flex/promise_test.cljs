@@ -1,4 +1,4 @@
-(ns town.lilac.flex.async-test
+(ns town.lilac.flex.promise-test
   (:require
    [clojure.test :as t :refer [async deftest is testing]]
    [town.lilac.flex :as f]
