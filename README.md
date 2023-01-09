@@ -26,7 +26,7 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 (def counter (flex/source 0))
 
 ;; a computation that updates when its dependencies change
-(def counter-sq (flex/signal (* @state @state)))
+(def counter-sq (flex/signal (* @counter @counter)))
 
 ;; an effect that runs side effects when its dependencies change
 (def prn-fx (flex/listen counter-sq prn))
