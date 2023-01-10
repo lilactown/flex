@@ -68,10 +68,10 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Reactive sources, signals and effects (`town.lilac.flex`)
 - [x] Functional transduce/transform/reduce (`town.lilac.flex.xform`)
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
-- [x] `add-watch` & `remove-watch` support (`town.lilac.flex.watch`)
+- [x] `add-watch` & `remove-watch` support (`town.lilac.flex.atom`)
 - [x] Batching
 - [x] Error handling
-- [x] Async support on JS
+- [x] Async support on JS (`town.lilac.flex.promise`)
 - [ ] Multiplexing / multithreaded scheduling on JVM
 - [ ] Babashka support
 
