@@ -108,7 +108,7 @@ Reagent schedules some effects asynchronously using `requestAnimationFrame`.
 
 #### Scope
 
-flex only handles reactive computation graphs and has no external dependencies.
+flex only handles reactive computations and has no external dependencies.
 Reagent bundles together its reactive computations with additional functionality
 to build web apps in the browser, and depends on React.js for this.
 
