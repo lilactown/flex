@@ -36,6 +36,7 @@
   (dump [o]))
 
 (def ^:dynamic *reactive* nil)
+(def ^:dynamic *cleanup* nil)
 
 (defn- heap
   ([xs]
@@ -143,12 +144,14 @@
 (deftype SyncEffect [^:volatile-mutable dependencies
                      ^:volatile-mutable prev
                      ^:volatile-mutable order
+                     ^:volatile-mutable cleanup
                      f]
   Debug
   (dump [_]
     {:dependencies dependencies :prev prev :order order :f f})
   Signal
   (-propagate [this] (-run! this) nil)
+  (-error [this e] (prn e))
   Ordered
   (-get-order [_] order)
   Disposable
@@ -157,16 +160,27 @@
     (set! (.-prev this) nil)
     (doseq [dep dependencies]
       (-disconnect dep this))
-    (set! (.-dependencies this) nil))
+    (set! (.-dependencies this) nil)
+    (doseq [fx cleanup]
+      (-dispose fx)))
   Sink
   (-run! [this]
-    (binding [*reactive* #{}]
+    (when (some? *cleanup*)
+      (set! *cleanup* (conj *cleanup* this)))
+    (binding [*reactive* #{}
+              *cleanup* #{}]
       (set! prev (f prev))
       (doseq [dep (set/difference dependencies *reactive*)]
         (-disconnect dep this))
       (doseq [dep (set/difference *reactive* dependencies)]
         (-connect dep this))
       (set! dependencies *reactive*)
+
+      ;; child effects
+      (doseq [dep (set/difference cleanup *cleanup*)]
+        (-dispose dep))
+      (set! cleanup *cleanup*)
+
       (set! order (inc (apply max (map #(-get-order %) *reactive*))))
       (fn dispose [] (-dispose this))))
   #?(:clj clojure.lang.IFn :cljs IFn)
@@ -279,7 +293,7 @@
 (defn create-effect
   "Creates a reactive effect object. Used by `effect`."
   [f]
-  (->SyncEffect #{} nil nil f))
+  (->SyncEffect #{} nil nil #{} f))
 
 (defn listen
   "Creates a reactive listener meant to do side effects. Given a signal `s`
