@@ -402,11 +402,16 @@
   s)
 
 (defmacro skip
+  "Runs the body. Any updates to reactive sources will not trigger a
+  recalculation."
   [& body]
   `(binding [*skip-updates* true]
      ~@body))
 
 (defmacro untrack
+  "Runs the body. If run in a reactive context (e.g. inside a `signal`), any
+  reactive objects dereferenced will not be listened to and changes to them will
+  not trigger updates."
   [& body]
   `(binding [*reactive* nil]
      ~@body))
