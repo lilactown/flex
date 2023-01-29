@@ -313,7 +313,27 @@
          #?(:clj ArithmeticException :cljs js/Error)
          (B 0)))
     (is (= [1] @*calls))
-    (is (= 1 @*errors))))
+    (is (= 1 @*errors)))
+  (testing "diamond"
+    (let [*calls (atom [])
+          *errors (atom 0)
+          A (f/source 1)
+          B (f/source 1)
+          C (-> (f/signal #?(:clj (/ @A @B)
+                             :cljs (let [x (/ @A @B)]
+                                     (when (= ##Inf x)
+                                       (throw (ex-info "Divide by zero" {})))
+                                     x)))
+                (f/on-error (fn [_e]
+                              (swap! *errors inc))))
+          D (-> (f/signal (+ @A @B)))
+          Z (f/effect [_] (swap! *calls conj [@C @D]))
+          dispose (Z)]
+      (is (thrown?
+           #?(:clj ArithmeticException :cljs js/Error)
+           (B 0)))
+      (is (= [[1 2] [1 1]] @*calls))
+      (is (= 1 @*errors)))))
 
 (deftest skip
   (let [*calls (atom [])
