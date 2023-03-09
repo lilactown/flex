@@ -106,6 +106,11 @@ ratoms are up to date and others are not.
 flex does all changes, computations and effects synchronously by default.
 Reagent schedules some effects asynchronously using `requestAnimationFrame`.
 
+#### Nested effects
+
+Effects can be nested within each other, and when the outer effect is disposed it
+will dispose of all inner effects.
+
 #### Scope
 
 flex only handles reactive computations and has no external dependencies.
