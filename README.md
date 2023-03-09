@@ -1,9 +1,9 @@
 # flex
 
-flex is a library for building reactive computation graphs in Clojure(Script).
+flex is a library for building computations using signals in Clojure(Script).
 It gets its inspiration from [reagent](https://github.com/reagent-project/reagent)
 and its lineage ([reflex](https://github.com/lynaghk/reflex), KnockoutJS,
-[S.js](https://github.com/adamhaile/S)).
+[S.js](https://github.com/adamhaile/S)) as well as [SolidJS](https://www.solidjs.com/).
 
 ## Install
 
