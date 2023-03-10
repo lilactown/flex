@@ -332,8 +332,11 @@
       (is (thrown?
            #?(:clj ArithmeticException :cljs js/Error)
            (B 0)))
-      (is (= [[1 2] [1 1]] @*calls))
-      (is (= 1 @*errors)))))
+      (is (= @B 0) "B is updated")
+      (is (= 1 @C) "C is last good val")
+      (is (= 2 @D) "D isn't next val")
+      (is (= [[1 2]] @*calls) "effects aren't called")
+      (is (= 1 @*errors) "on-error is called"))))
 
 (deftest skip
   (let [*calls (atom [])
