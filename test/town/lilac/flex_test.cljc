@@ -100,7 +100,7 @@
         *disposed (atom 0)
         A (f/source 0)
         B (f/on-dispose (f/signal (* @A @A)) (fn [_] (swap! *disposed inc)))
-        Z (f/effect [_] (swap! *calls conj @B))
+        Z (f/effect [] (swap! *calls conj @B))
         dispose (Z)]
     (is (= 0 @*disposed))
     (is (= [0] @*calls))
@@ -126,7 +126,7 @@
           D (f/signal (if (even? @A)
                         (inc @B)
                         (inc @C)))
-          Z (f/effect [_] (swap! *calls conj @D))
+          Z (f/effect [] (swap! *calls conj @D))
           dispose (Z)]
       (is (= [11] @*calls))
       (B 20)
@@ -152,7 +152,7 @@
           D (f/signal (if (even? @A)
                         (inc @B)
                         (inc @C)))
-          Z (f/effect [_] (swap! *calls conj @D))
+          Z (f/effect [] (swap! *calls conj @D))
           dispose (Z)]
       (is (= [1] @*calls))
       (is (= f/sentinel @C))
@@ -177,8 +177,8 @@
                           (let [c @C]
                             (+ a c))
                           a)))
-          Z (f/effect [_] (swap! *calls conj @D))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj @D))
+          _dispose (Z)]
       (is (= [0] @*calls))
       (A 1)
       (A 2)
@@ -188,8 +188,8 @@
   (let [*calls (atom [])
         A (f/source 0)
         B (f/source 0)
-        Z (f/effect [_] (swap! *calls conj [@A @B]))
-        dispose (Z)]
+        Z (f/effect [] (swap! *calls conj [@A @B]))
+        _dispose (Z)]
     (is (= [[0 0]] @*calls))
     (f/batch-send! (fn []
                      (A 1)
@@ -210,8 +210,8 @@
                                  (when (= ##Inf x)
                                    (throw (ex-info "Divide by zero" {})))
                                  x)))
-          Z (f/effect [_] (swap! *calls conj @C))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj @C))
+          _dispose (Z)]
       (is (= [1] @*calls))
       (is (thrown? #?(:clj ExceptionInfo :cljs js/Error)
                    (f/batch-send! (fn []
@@ -237,8 +237,8 @@
     (let [*calls (atom [])
           A (f/source 0)
           B (f/signal (* @A @A))
-          Z (f/effect [_] (swap! *calls conj @B))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj @B))
+          _dispose (Z)]
       (f/batch
        (A 2)
        (is (= 0 @B))
@@ -256,8 +256,8 @@
     (let [*calls (atom [])
           A (f/source 0)
           B (f/signal (* @A @A))
-          Z (f/effect [_] (swap! *calls conj @B))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj @B))
+          _dispose (Z)]
       (f/batch
        (A 1)
        (f/send! A 2)
@@ -276,8 +276,8 @@
     (let [*calls (atom [])
           A (f/source 0)
           B (f/signal (* @A @A))
-          Z (f/effect [_] (swap! *calls conj @B))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj @B))
+          _dispose (Z)]
       (is (thrown?
            #?(:clj ExceptionInfo :cljs js/Error)
            (f/batch
@@ -310,8 +310,8 @@
                                    x)))
               (f/on-error (fn [_e]
                             (swap! *errors inc))))
-        Z (f/effect [_] (swap! *calls conj @C))
-        dispose (Z)]
+        Z (f/effect [] (swap! *calls conj @C))
+        _dispose (Z)]
     (is (thrown?
          #?(:clj ArithmeticException :cljs js/Error)
          (B 0)))
@@ -330,8 +330,8 @@
                 (f/on-error (fn [_e]
                               (swap! *errors inc))))
           D (-> (f/signal (+ @A @B)))
-          Z (f/effect [_] (swap! *calls conj [@C @D]))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj [@C @D]))
+          _dispose_ (Z)]
       (is (thrown?
            #?(:clj ArithmeticException :cljs js/Error)
            (B 0)))
@@ -345,8 +345,8 @@
   (let [*calls (atom [])
         A (f/source 0)
         B (f/signal (inc @A))
-        Z (f/effect [_] (swap! *calls conj @B))
-        dispose (Z)]
+        Z (f/effect [] (swap! *calls conj @B))
+        _dispose (Z)]
     (A 1)
     (A 2)
     (f/skip (A 3) (A 4))
@@ -358,8 +358,8 @@
         A (f/source 0)
         B (f/source 0)
         C (f/signal [@A (f/untrack @B)])
-        Z (f/effect [_] (swap! *calls conj @C))
-        dispose (Z)]
+        Z (f/effect [] (swap! *calls conj @C))
+        _dispose (Z)]
     (A 1)
     (B 1)
     (A 2)
@@ -371,8 +371,8 @@
           C (f/signal (if (even? @A)
                         [@A @B]
                         [@A (f/untrack @B)]))
-          Z (f/effect [_] (swap! *calls conj @C))
-          dispose (Z)]
+          Z (f/effect [] (swap! *calls conj @C))
+          _dispose (Z)]
       (A 1)
       (B 1)
       (A 2)
