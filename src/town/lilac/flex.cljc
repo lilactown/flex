@@ -120,7 +120,7 @@
   (dump [_]
     {:order order :dep dep :f f})
   Signal
-  (-propagate [this]
+  (-propagate [_]
     (f @dep)
     (set! order (inc (-get-order dep)))
     nil)

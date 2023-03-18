@@ -30,7 +30,7 @@
        IReset
        (-reset! [_ x] (resetter x))))
   flex/Disposable
-  (-add-on-dispose [_ f] nil)
+  (-add-on-dispose [_ _f] nil)
   (-dispose [_]
     (set! watchers nil)
     (and dispose (dispose)))

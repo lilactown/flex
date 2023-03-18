@@ -10,7 +10,7 @@
     (let [*calls (atom [])
           A (f/source 0)
           W (atom/of A)]
-      (add-watch W :t (fn [k o p v]
+      (add-watch W :t (fn [k _o p v]
                         (swap! *calls conj [k p v])))
       (A 1)
       (is (= 1 @W))
@@ -28,7 +28,7 @@
           A (f/source 0)
           B (f/signal (inc @A))
           W (atom/of B)]
-      (add-watch W :t (fn [k o p v]
+      (add-watch W :t (fn [k _o p v]
                         (swap! *calls conj [k p v])))
       (A 1)
       (is (= 2 @W))
@@ -48,8 +48,8 @@
         *source (atom 0)
         A (atom/watch *source)
         B (f/signal (inc @A))
-        Z (f/effect [_] (swap! *calls conj @B))
-        dispose (Z)]
+        Z (f/effect [] (swap! *calls conj @B))
+        _dispose (Z)]
     (is (= 0 @A))
     (is (= [1] @*calls))
     (swap! *source inc)

@@ -8,7 +8,7 @@
   (let [*calls (atom [])
         A (f/source 0)
         B (xf/reduce conj [] A)
-        Z (f/effect [_] (swap! *calls conj @B))
+        Z (f/effect [] (swap! *calls conj @B))
         dispose (Z)]
     (is (= [[0]] @*calls))
     (A 1)
@@ -25,7 +25,7 @@
         B (xf/eduction (filter even?) A)
         C (f/signal (* @B @B))
         D (xf/eduction (map inc) C)
-        Z (f/effect [_] (swap! *calls conj @D))
+        Z (f/effect [] (swap! *calls conj @D))
         dispose (Z)]
     (is (= [1] @*calls))
     (A 1)
@@ -45,7 +45,7 @@
   (let [*calls (atom [])
         A (f/source 0)
         B (xf/collect [] (map inc) A)
-        Z (f/effect [_] (swap! *calls conj @B))
+        Z (f/effect [] (swap! *calls conj @B))
         dispose (Z)]
     (is (= [[1]] @*calls))
     (A 1)
@@ -60,7 +60,7 @@
   (let [*calls (atom [])
         A (f/source 0)
         B (xf/collect [] (drop 2) A)
-        Z (f/effect [_] (swap! *calls conj @B))
+        Z (f/effect [] (swap! *calls conj @B))
         dispose (Z)]
     (is (= [[]] @*calls))
     (A 1) (A 2)
@@ -78,7 +78,7 @@
   (let [*calls (atom [])
         A (f/source 0)
         B (xf/sliding 3 A)
-        Z (f/effect [_] (swap! *calls conj @B))
+        Z (f/effect [] (swap! *calls conj @B))
         dispose (Z)]
     (A 1)
     (A 2)

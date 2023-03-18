@@ -1,6 +1,6 @@
 (ns town.lilac.flex.memo-test
   (:require
-   [clojure.test :as t :refer [deftest is testing]]
+   [clojure.test :as t :refer [deftest is]]
    [town.lilac.flex :as f]
    [town.lilac.flex.memo :as memo]))
 
@@ -10,7 +10,7 @@
         B (factory 1)
         B' (factory 1)
         C (factory 2)
-        Z (f/effect [_] (+ @B @B' @C))
+        Z (f/effect [] (+ @B @B' @C))
         dispose (Z)]
     (is (= B B'))
     (is (= 1 @B @B'))
