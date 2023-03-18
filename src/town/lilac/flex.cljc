@@ -26,7 +26,8 @@
   (-touch [o]))
 
 (defprotocol Ordered
-  (-get-order [o]))
+  (-get-order [o])
+  (-get-id [o]))
 
 (defprotocol Disposable
   (-dispose [o])
@@ -53,6 +54,7 @@
     xs)))
 
 (def *tx-id (volatile! 0))
+(def *reactive-counter (volatile! 0))
 (def ^:dynamic *current-tx* {})
 (def sentinel ::init)
 
@@ -114,10 +116,10 @@
                        (throw (ex-info "Invalid arity" {:this this :args args})))
                      (this (first args))))))
 
-(deftype SyncListener [^:volatile-mutable order dep f]
+(deftype SyncListener [^:volatile-mutable order id dep f]
   Debug
   (dump [_]
-    {:order order :dep dep :f f})
+    {:order order :id id :dep dep :f f})
   Signal
   (-propagate [_]
     (f @dep)
@@ -125,6 +127,7 @@
     nil)
   Ordered
   (-get-order [_] order)
+  (-get-id [_] id)
   Disposable
   (-dispose [this]
     (-disconnect dep this))
@@ -145,16 +148,18 @@
                      ^:volatile-mutable prev
                      ^:volatile-mutable order
                      ^:volatile-mutable cleanup
+                     id
                      f
                      arity]
   Debug
   (dump [_]
-    {:dependencies dependencies :prev prev :order order :f f})
+    {:dependencies dependencies :prev prev :order order :id id :f f})
   Signal
   (-propagate [this] (-run! this) nil)
   (-error [_ e] (prn e))
   Ordered
   (-get-order [_] order)
+  (-get-id [_] id)
   Disposable
   (-dispose [this]
     (and (fn? prev) (prev))
@@ -203,6 +208,7 @@
                      ^:volatile-mutable on-dispose-fns
                      ^:volatile-mutable on-error-fns
                      ^:volatile-mutable order
+                     id
                      f]
   Debug
   (dump [_]
@@ -210,6 +216,7 @@
      :dependents dependents
      :dependencies dependencies
      :order order
+     :id id
      :f f})
   Reactive
   (-connect [_ dep]
@@ -231,6 +238,7 @@
     cache)
   Ordered
   (-get-order [_] order)
+  (-get-id [_] id)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
     (if (some? *reactive*)
@@ -293,12 +301,12 @@
 (defn create-signal
   "Creates a reactive signal object. Used by `signal`."
   [f]
-  (->SyncSignal sentinel #{} #{} [] [] nil f))
+  (->SyncSignal sentinel #{} #{} [] [] nil (vswap! *reactive-counter inc) f))
 
 (defn create-effect
   "Creates a reactive effect object. Used by `effect`."
   [f arity]
-  (->SyncEffect #{} sentinel nil #{} f arity))
+  (->SyncEffect #{} sentinel nil #{} (vswap! *reactive-counter inc) f arity))
 
 (defn listen
   "Creates a reactive listener meant to do side effects. Given a signal `s`
@@ -306,7 +314,7 @@
   will call `f` anytime `s` changes. Returns a function that when called, stops
   listening."
   [s f]
-  (->SyncListener nil s f))
+  (->SyncListener nil (vswap! *reactive-counter inc) s f))
 
 (defmacro signal
   "Creates a reactive memoized computation which yields the return value of the
@@ -385,7 +393,7 @@
                                        (-error dep e)
                                        (throw e)))))
                            #{}
-                           next-deps))))))
+                           (sort-by #(-get-id %) next-deps)))))))
 
 (def ^:dynamic *skip-updates* false)
 

@@ -322,6 +322,7 @@
           *errors (atom 0)
           A (f/source 1)
           B (f/source 1)
+          D (-> (f/signal (+ @A @B)))
           C (-> (f/signal #?(:clj (/ @A @B)
                              :cljs (let [x (/ @A @B)]
                                      (when (= ##Inf x)
@@ -329,7 +330,6 @@
                                      x)))
                 (f/on-error (fn [_e]
                               (swap! *errors inc))))
-          D (-> (f/signal (+ @A @B)))
           Z (f/effect [] (swap! *calls conj [@C @D]))
           _dispose_ (Z)]
       (is (thrown?
