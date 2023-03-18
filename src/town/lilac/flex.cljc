@@ -54,6 +54,7 @@
 
 (def *tx-id (volatile! 0))
 (def ^:dynamic *current-tx* {})
+(def sentinel ::init)
 
 (deftype SyncSource [^:volatile-mutable value
                      ^:volatile-mutable dependents
@@ -145,13 +146,14 @@
                      ^:volatile-mutable prev
                      ^:volatile-mutable order
                      ^:volatile-mutable cleanup
-                     f]
+                     f
+                     arity]
   Debug
   (dump [_]
     {:dependencies dependencies :prev prev :order order :f f})
   Signal
   (-propagate [this] (-run! this) nil)
-  (-error [this e] (prn e))
+  (-error [_ e] (prn e))
   Ordered
   (-get-order [_] order)
   Disposable
@@ -169,7 +171,13 @@
       (set! *cleanup* (conj *cleanup* this)))
     (binding [*reactive* #{}
               *cleanup* #{}]
-      (set! prev (f prev))
+      (case arity
+        0 (set! prev (f))
+        1 (set! prev (f (if (= sentinel prev) nil prev)))
+        :multi (set! prev
+                        (if (= sentinel prev)
+                          (f)
+                          (f prev))))
       (doseq [dep (set/difference dependencies *reactive*)]
         (-disconnect dep this))
       (doseq [dep (set/difference *reactive* dependencies)]
@@ -189,8 +197,6 @@
                      (when (pos? (count args))
                        (throw (ex-info "Invalid arity" {:args args})))
                      (-run! this)))))
-
-(def sentinel ::init)
 
 (deftype SyncSignal [^:volatile-mutable cache
                      ^:volatile-mutable dependents
@@ -292,8 +298,8 @@
 
 (defn create-effect
   "Creates a reactive effect object. Used by `effect`."
-  [f]
-  (->SyncEffect #{} nil nil #{} f))
+  [f arity]
+  (->SyncEffect #{} sentinel nil #{} f arity))
 
 (defn listen
   "Creates a reactive listener meant to do side effects. Given a signal `s`
@@ -319,19 +325,50 @@
   "Creates a reactive effect object, which is meant to do side effects based on
   changes to signals and sources.
 
-  `body` should start with an args vector, which receives one argument
-  (the previous value returned by the body) and then a series of expressions
-  to be evaluated.
-
   Returns a function that when called immediately executes the body and connects
   any reactive objects dereferenced in the body, so that they start computing
   and reacting to upstream changes.
 
-  Calling the function returns a \"dispose\" function which when called will
+  `body` is like a function that can take zero or one arguments. If zero
+  arguments are accepted, the body will be called each time any dependencies
+  change.
+
+  ```
+  (let [fx (effect [] ,,,)]
+    ,,,)
+  ```
+
+  If one argument is accepted, the body will be called each time any
+  dependencies change and the argument will equal the previous value returned by
+  the body of the effect.
+
+  ```
+  (let [fx (effect [x] ,,,)]
+    ,,,)
+  ```
+
+  If both zero and one arguments are accepted, the zero arity will be called on
+  start and the one arity will be called any time the dependencies change with
+  the value previously returned.
+
+  ```
+  (let [fx (effect ([] ,,,) ([x] ,,,))]
+    ,,,)
+  ```
+
+  Calling the `fx` function returns a \"dispose\" function, when called will
   stop the effect from continuing to execute, and cleans up any signals that are
   solely referenced by the effect."
   [& body]
-  `(create-effect (fn ~@body)))
+  (let [hd (first body)
+        arity (cond
+                ;; (effect [] ,,,) and (effect [x] ,,,)
+                (vector? hd) (count hd)
+                ;; (effect ([] ,,,) ([x] ,,,))
+                (and (list? hd) (list? (second body))) :multi
+                ;; (effect ([] ,,,)) and (effect ([x] ,,,))
+                (list? hd) (count (first hd)))]
+    `(create-effect (fn ~@body) ~arity)))
 
 
 (defn- sync!
@@ -395,11 +432,6 @@
   occurs at any time during `body`, none of the changes will be applied."
   [& body]
   `(batch-send! (fn [] ~@body)))
-
-(defn run!
-  "Starts an effect. Same as calling it like a function."
-  [effect]
-  (-run! effect))
 
 (defn on-dispose
   "Adds a callback function to a signal to be called when the signal is no

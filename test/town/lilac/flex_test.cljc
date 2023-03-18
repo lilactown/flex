@@ -28,7 +28,7 @@
   (let [*calls (atom [])
         A (f/source 2)
         B (f/signal (* @A @A))
-        Z (f/effect [_] (swap! *calls conj @B))]
+        Z (f/effect [] (swap! *calls conj @B))]
     (is (= 2 @A))
     (is (= f/sentinel @B))
     (let [dispose (Z)]
@@ -51,7 +51,7 @@
         B (f/signal (* @A @A))
         C (f/signal (+ @A 2))
         D (f/signal (* @C @C))
-        Z (f/effect [_] (swap! *calls conj [@B @D]))
+        Z (f/effect [] (swap! *calls conj [@B @D]))
         dispose (Z)]
     (is (= 2 @A))
     (is (= 4 @B))
@@ -77,11 +77,14 @@
         *cleanup-calls (atom 0)
         A (f/source 2)
         Z (f/effect
-           [cleanup]
-           (swap! *calls conj @A)
-           ;; first cleanup is nil
-           (and cleanup (cleanup))
-           #(swap! *cleanup-calls inc))
+           ([]
+            (swap! *calls conj @A)
+            #(swap! *cleanup-calls inc))
+           ([cleanup]
+            (swap! *calls conj @A)
+            ;; first cleanup is nil
+            (cleanup)
+            #(swap! *cleanup-calls inc)))
         dispose (Z)]
     (is (= [2] @*calls))
     (is (= 0 @*cleanup-calls))
