@@ -13,12 +13,11 @@
 (declare send!)
 
 (defprotocol Sink
+  (-add-on-error [s f])
   (-run! [sink] "Run the side effect of a sink"))
 
 (defprotocol Signal
-  (-propagate [s])
-  (-add-on-error [s f])
-  (-error [o e]))
+  (-propagate [s]))
 
 (defprotocol Reactive
   (-connect [o dep])
@@ -116,7 +115,9 @@
                        (throw (ex-info "Invalid arity" {:this this :args args})))
                      (this (first args))))))
 
-(deftype SyncListener [^:volatile-mutable order id dep f]
+(deftype SyncListener [^:volatile-mutable order
+                       ^:volatile-mutable on-error-fns
+                       id dep f]
   Debug
   (dump [_]
     {:order order :id id :dep dep :f f})
@@ -132,8 +133,13 @@
   (-dispose [this]
     (-disconnect dep this))
   Sink
+  (-add-on-error [_ f] (set! on-error-fns (conj on-error-fns f)))
   (-run! [this]
-    (-touch dep)
+    (try
+      (-touch dep)
+      (catch #?(:clj Throwable :cljs js/Object) e
+        (doseq [on-error on-error-fns]
+          (on-error e))))
     (set! order (inc (-get-order dep)))
     (-connect dep this)
     (fn dispose [] (-dispose this)))
@@ -148,6 +154,7 @@
                      ^:volatile-mutable prev
                      ^:volatile-mutable order
                      ^:volatile-mutable cleanup
+                     ^:volatile-mutable on-error-fns
                      id
                      f
                      arity]
@@ -156,44 +163,47 @@
     {:dependencies dependencies :prev prev :order order :id id :f f})
   Signal
   (-propagate [this] (-run! this) nil)
-  (-error [_ e] (prn e))
   Ordered
   (-get-order [_] order)
   (-get-id [_] id)
   Disposable
   (-dispose [this]
     (and (fn? prev) (prev))
-    (set! (.-prev this) nil)
+    (set! prev nil)
     (doseq [dep dependencies]
       (-disconnect dep this))
-    (set! (.-dependencies this) nil)
+    (set! dependencies nil)
     (doseq [fx cleanup]
       (-dispose fx)))
   Sink
+  (-add-on-error [_ f] (set! on-error-fns (conj on-error-fns f)))
   (-run! [this]
     (when (some? *cleanup*)
       (set! *cleanup* (conj *cleanup* this)))
     (binding [*reactive* #{}
               *cleanup* #{}]
-      (case arity
-        0 (set! prev (f))
-        1 (set! prev (f (if (= sentinel prev) nil prev)))
-        :multi (set! prev
-                        (if (= sentinel prev)
-                          (f)
-                          (f prev))))
-      (doseq [dep (set/difference dependencies *reactive*)]
-        (-disconnect dep this))
-      (doseq [dep (set/difference *reactive* dependencies)]
-        (-connect dep this))
-      (set! dependencies *reactive*)
+      (try
+        (case arity
+          0 (set! (.-prev this) (f))
+          1 (set! (.-prev this) (f (if (= sentinel prev) nil prev)))
+          :multi (set! (.-prev this)
+                       (if (= sentinel prev)
+                         (f)
+                         (f prev))))
+        (doseq [dep (set/difference dependencies *reactive*)]
+          (-disconnect dep this))
+        (doseq [dep (set/difference *reactive* dependencies)]
+          (-connect dep this))
+        (set! (.-dependencies this) *reactive*)
 
-      ;; child effects
-      (doseq [dep (set/difference cleanup *cleanup*)]
-        (-dispose dep))
-      (set! cleanup *cleanup*)
-
-      (set! order (inc (apply max (map #(-get-order %) *reactive*))))
+        ;; child effects
+        (doseq [dep (set/difference cleanup *cleanup*)]
+          (-dispose dep))
+        (set! (.-cleanup this) *cleanup*)
+        (catch #?(:clj Throwable :cljs js/Object) e
+          (doseq [on-error on-error-fns]
+            (on-error e))))
+      (set! order (inc (apply max (map #(-get-order %) dependencies))))
       (fn dispose [] (-dispose this))))
   #?(:clj clojure.lang.IFn :cljs IFn)
   (#?(:clj invoke :cljs -invoke) [this] (-run! this))
@@ -205,8 +215,8 @@
 (deftype SyncSignal [^:volatile-mutable cache
                      ^:volatile-mutable dependents
                      ^:volatile-mutable dependencies
+                     ^:volatile-mutable error
                      ^:volatile-mutable on-dispose-fns
-                     ^:volatile-mutable on-error-fns
                      ^:volatile-mutable order
                      id
                      f]
@@ -215,6 +225,7 @@
     {:cache cache
      :dependents dependents
      :dependencies dependencies
+     :error error
      :order order
      :id id
      :f f})
@@ -230,43 +241,49 @@
       ;; track dependencies
       (binding [*reactive* #{}]
         ;; https://clojure.atlassian.net/browse/CLJ-2743
-        (set! (.-cache this) (f))
-        (set! (.-dependencies this) *reactive*)
-        (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
-        (doseq [dep *reactive*]
-          (-connect dep this))))
-    cache)
+        (try
+          (set! (.-cache this) (f))
+          (set! (.-dependencies this) *reactive*)
+          (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
+          (doseq [dep *reactive*]
+            (-connect dep this))
+          (catch #?(:clj Throwable :cljs js/Object) e
+            (set! (.-error e) e)))))
+    (if (some? error)
+      (throw error)
+      cache))
   Ordered
   (-get-order [_] order)
   (-get-id [_] id)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
-    (if (some? *reactive*)
+    (cond
+      (some? *reactive*)
       (do (set! *reactive* (conj *reactive* this))
           (-touch this))
-      cache))
+      (some? error) (throw error)
+      :else cache))
   Signal
   (-propagate [this]
     (binding [*reactive* #{}]
-      (let [newv (f)]
-        (doseq [dep (set/difference dependencies *reactive*)]
-          (-disconnect dep this))
+      (set! error nil)
+      (try
+        (let [newv (f)]
+         (doseq [dep (set/difference dependencies *reactive*)]
+           (-disconnect dep this))
 
-        (doseq [dep (set/difference *reactive* dependencies)]
-          (-connect dep this))
-        (set! dependencies *reactive*)
-        (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
-        ;; only return dependents and set cache if value is different
-        ;; aka cutoff
-        (when (not= cache newv)
-          (set! cache newv)
+         (doseq [dep (set/difference *reactive* dependencies)]
+           (-connect dep this))
+         (set! dependencies *reactive*)
+         (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
+         ;; only return dependents and set cache if value is different
+         ;; aka cutoff
+         (when (not= cache newv)
+           (set! cache newv)
+           dependents))
+        (catch #?(:clj Throwable :cljs js/Object) e
+          (set! error e)
           dependents))))
-  (-add-on-error [this f]
-    (set! on-error-fns (conj on-error-fns f))
-    this)
-  (-error [_ e]
-    (doseq [f on-error-fns]
-      (f e)))
   Disposable
   (-dispose [this]
     (doseq [f on-dispose-fns]
@@ -301,12 +318,12 @@
 (defn create-signal
   "Creates a reactive signal object. Used by `signal`."
   [f]
-  (->SyncSignal sentinel #{} #{} [] [] nil (vswap! *reactive-counter inc) f))
+  (->SyncSignal sentinel #{} #{} nil [] nil (vswap! *reactive-counter inc) f))
 
 (defn create-effect
   "Creates a reactive effect object. Used by `effect`."
   [f arity]
-  (->SyncEffect #{} sentinel nil #{} (vswap! *reactive-counter inc) f arity))
+  (->SyncEffect #{} sentinel nil #{} [] (vswap! *reactive-counter inc) f arity))
 
 (defn listen
   "Creates a reactive listener meant to do side effects. Given a signal `s`
@@ -314,7 +331,7 @@
   will call `f` anytime `s` changes. Returns a function that when called, stops
   listening."
   [s f]
-  (->SyncListener nil (vswap! *reactive-counter inc) s f))
+  (->SyncListener nil [] (vswap! *reactive-counter inc) s f))
 
 (defmacro signal
   "Creates a reactive memoized computation which yields the return value of the
@@ -382,15 +399,12 @@
   [deps]
   (loop [deps (heap deps)]
     (when-let [[order next-deps] (first deps)]
-      ;; TODO handle recursive
-      ;; guaranteed to always have a bigger order in deps
       (recur (heap (dissoc deps order)
                    (reduce (fn [dependents dep]
                              (into dependents
                                    (try
                                      (-propagate dep)
                                      (catch #?(:clj Throwable :cljs js/Object) e
-                                       (-error dep e)
                                        (throw e)))))
                            #{}
                            (sort-by #(-get-id %) next-deps)))))))

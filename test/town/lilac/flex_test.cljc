@@ -221,13 +221,12 @@
       (is (= 1 @A))
       (is (= 1 @B))
       (is (= [1] @*calls))
-      (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
-                   (f/batch-send! (fn []
-                                    (A 2)
-                                    (B 0)))))
+      (f/batch-send! (fn []
+                       (A 2)
+                       (B 0)))
       (is (= 2 @A))
       (is (= 0 @B))
-      (is (= [1] @*calls))
+      (is (= [1] @*calls) "effect ")
       (f/batch-send! (fn []
                        (A 4)
                        (B 0) ; since this is updated again, no error triggered
@@ -303,43 +302,46 @@
         *errors (atom 0)
         A (f/source 1)
         B (f/source 1)
-        C (-> (f/signal #?(:clj (/ @A @B)
-                           :cljs (let [x (/ @A @B)]
-                                   (when (= ##Inf x)
-                                     (throw (ex-info "Divide by zero" {})))
-                                   x)))
-              (f/on-error (fn [_e]
-                            (swap! *errors inc))))
-        Z (f/effect [] (swap! *calls conj @C))
+        C (f/signal #?(:clj (/ @A @B)
+                       :cljs (let [x (/ @A @B)]
+                               (when (= ##Inf x)
+                                 (throw (ex-info "Divide by zero" {})))
+                               x)))
+        Z (f/effect
+           []
+           (try (swap! *calls conj @C)
+                (catch #?(:clj ArithmeticException :cljs js/Error) e
+                  (swap! *errors inc))))
         _dispose (Z)]
-    (is (thrown?
-         #?(:clj ArithmeticException :cljs js/Error)
-         (B 0)))
-    (is (= [1] @*calls))
-    (is (= 1 @*errors)))
+    (B 0)
+    (is (= [1] @*calls) "effect does not run after only dependent errors")
+    (is (= 1 @*errors))
+    (is (thrown? #?(:clj ArithmeticException :cljs js/Error) @C)))
   (testing "diamond"
     (let [*calls (atom [])
           *errors (atom 0)
           A (f/source 1)
           B (f/source 1)
-          D (-> (f/signal (+ @A @B)))
-          C (-> (f/signal #?(:clj (/ @A @B)
-                             :cljs (let [x (/ @A @B)]
-                                     (when (= ##Inf x)
-                                       (throw (ex-info "Divide by zero" {})))
-                                     x)))
-                (f/on-error (fn [_e]
-                              (swap! *errors inc))))
-          Z (f/effect [] (swap! *calls conj [@C @D]))
-          _dispose_ (Z)]
+          D (f/signal (+ @A @B))
+          C (f/signal #?(:clj (/ @A @B)
+                         :cljs (let [x (/ @A @B)]
+                                 (when (= ##Inf x)
+                                   (throw (ex-info "Divide by zero" {})))
+                                 x)))
+          Z (-> (f/effect
+                 []
+                 (swap! *calls conj (doto [@C @D] prn)))
+                (f/on-error (fn [_e] (swap! *errors inc))))
+          _dispose (Z)]
+      (is (= 2 @D))
+      (B 0)
+      (is (= @B 0) "B is updated")
       (is (thrown?
            #?(:clj ArithmeticException :cljs js/Error)
-           (B 0)))
-      (is (= @B 0) "B is updated")
-      (is (= 1 @C) "C is last good val")
-      (is (= 2 @D) "D isn't next val")
-      (is (= [[1 2]] @*calls) "effects aren't called")
-      (is (= 1 @*errors) "on-error is called"))))
+           @C) "C throws on deref")
+      (is (= 1 @D) "D is next val")
+      (is (= [[1 2]] @*calls) "effect catches")
+      (is (= 1 @*errors) "error is caught in effect"))))
 
 (deftest skip
   (let [*calls (atom [])
