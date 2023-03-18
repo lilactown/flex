@@ -58,12 +58,11 @@
 
 (deftype SyncSource [^:volatile-mutable value
                      ^:volatile-mutable dependents
-                     order
                      ^:volatile-mutable txs
                      ^:volatile-mutable commit]
   Debug
   (dump [_]
-    {:value value :dependents dependents :order order :txs txs :commit commit})
+    {:value value :dependents dependents :order 0 :txs txs :commit commit})
   Reactive
   (-connect [_ dep]
     (set! dependents (conj dependents dep)))
@@ -71,7 +70,7 @@
     (set! dependents (disj dependents dep)))
   (-touch [_] value)
   Ordered
-  (-get-order [_] order)
+  (-get-order [_] 0)
   Source
   (-send [this x]
     (if-let [tx-id (:id *current-tx*)]
@@ -289,7 +288,7 @@
   When reactive exprs created with `signal` and `effect` dereference it, changes
   will be propagated to them."
   [initial]
-  (->SyncSource initial #{} 0 {} nil))
+  (->SyncSource initial #{} {} nil))
 
 (defn create-signal
   "Creates a reactive signal object. Used by `signal`."
