@@ -26,13 +26,12 @@
     this))
 
 (defn resource
-  "Returns a resource record, with the following properties:
-  - Calling like a function will call the `fetcher`, a function that returns a
-  promise, updating the state of the resource as it proceeds.
-  - Derefing the resource acts like a `source` and will produce the last value
-    retrieved by `fetcher`
+  "Returns a flex source that updates its state based on a promise-returning
+  function. Calling the source like a function will execute the `fetcher`,
+  a function that returns a promise, updating the state of the resource as it
+  proceeds. Derefing will return the last value retrieved by `fetcher`.
 
-  The resource also contains the following keys:
+  The return value is also an associative containing the following keys:
   `:state` - a source containing one of :unresolved, :pending, :ready,
              :refreshing, :error
   `:error` - a source containing last error from `fetcher`
