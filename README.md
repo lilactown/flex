@@ -11,7 +11,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "231362384785c1ce27074d0208633e6e620ef452"
+                 :git/sha "a17120b49f9b5efcc519f7ae2cc775527c2ece57"
 ```
 
 ## Example
@@ -70,10 +70,9 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 - [x] Memoized signal functions (`town.lilac.flex.memo`)
 - [x] `add-watch` & `remove-watch` support (`town.lilac.flex.atom`)
 - [x] Batching
-- [x] Error handling
+- [x] Error propagation to consumers
 - [x] Async support on JS (`town.lilac.flex.promise`)
 - [ ] Multiplexing / multithreaded scheduling on JVM
-- [ ] Babashka support
 
 ### Differences from reagent
 
@@ -89,17 +88,24 @@ glitches. Reagent propagates changes up the dependency chain and only
 re-calculates when dereferenced, which can avoid unnecessary work in some
 instances but can also lead to glitches.
 
-#### Batching and errors
+#### Batching
 
 When inside of a batched transaction, flex does not compute any dependent
 signals until the transaction has ended, even if the signal is explicitly
 dereferenced. When reagent is batching updates, it will calculate the result of
 a reaction with the latest value if it is dereferenced.
 
+#### Errors
+
 If an error occurs inside of a flex transaction, all changes are rolled back and
 no signals are updated. If you are updating a group of ratoms in reagent, if any
 error occurs in between updates then you can end up in a state where some of the
 ratoms are up to date and others are not.
+
+If an error occurs in a flex signal, the error is propagated to consumers so
+that it can be handled by an effect that has an `on-error` callback attached.
+Reagent reactions do not propagate errors and simply fail silently, leaving your
+app in a broken state if an exception is thrown.
 
 #### Scheduling
 
