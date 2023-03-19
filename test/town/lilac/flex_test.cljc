@@ -310,7 +310,7 @@
         Z (f/effect
            []
            (try (swap! *calls conj @C)
-                (catch #?(:clj ArithmeticException :cljs js/Error) e
+                (catch #?(:clj ArithmeticException :cljs js/Error) _e
                   (swap! *errors inc))))
         _dispose (Z)]
     (B 0)

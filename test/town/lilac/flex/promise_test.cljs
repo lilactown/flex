@@ -1,6 +1,6 @@
 (ns town.lilac.flex.promise-test
   (:require
-   [clojure.test :as t :refer [async deftest is testing]]
+   [clojure.test :as t :refer [async deftest is]]
    [town.lilac.flex :as f]
    [town.lilac.flex.promise :as p]))
 
@@ -19,8 +19,8 @@
                              (.then (constantly 42)))))
          *calls (atom [])
          s (f/signal (inc @(:value r)))
-         fx (f/effect [_] (swap! *calls conj @s))
-         dispose (fx)]
+         fx (f/effect [] (swap! *calls conj @s))
+         _dispose (fx)]
      (is (= :pending @(:state r)))
      ;; (is (= :unresolved @(:state r)))
      (is (= nil @(:value r)))
