@@ -14,7 +14,7 @@
     (is (= [[0] [0 1]] @*calls))
     (A 2) (A 3)
     (is (= [[0] [0 1] [0 1 2] [0 1 2 3]] @*calls))
-    (fx)
+    (f/dispose! fx)
     (A 4)
     (is(= [[0] [0 1] [0 1 2] [0 1 2 3]] @*calls))))
 
@@ -34,7 +34,7 @@
     (is (= [1 5] @*calls))
     (A 4)
     (is (= [1 5 17] @*calls))
-    (fx)
+    (f/dispose! fx)
     (A 5)
     (A 6)
     (is (= [1 5 17] @*calls))))
@@ -49,7 +49,7 @@
     (is (= [[1] [1 2]] @*calls))
     (A 2) (A 3)
     (is (= [[1] [1 2] [1 2 3] [1 2 3 4]] @*calls))
-    (fx)
+    (f/dispose! fx)
     (A 4)
     (is (= [[1] [1 2] [1 2 3] [1 2 3 4]] @*calls))))
 
@@ -63,7 +63,7 @@
     (is (= [[] [2]] @*calls))
     (A 3) (A 4)
     (is (= [[] [2] [2 3] [2 3 4]] @*calls))
-    (fx)
+    (f/dispose! fx)
     (testing "stateful xform reset on dispose"
       (f/run! fx)
       (is (= [[] [2] [2 3] [2 3 4] []] @*calls))
@@ -81,7 +81,7 @@
     (A 4)
     (is (= '[(0) (1 0) (2 1 0) (3 2 1) (4 3 2)] @*calls))
     (testing "state reset on dispose"
-      (fx)
+      (f/dispose! fx)
       (f/run! fx)
       (is (= '[(0) (1 0) (2 1 0) (3 2 1) (4 3 2) (4)] @*calls)))))
 

@@ -19,8 +19,7 @@
                              (.then (constantly 42)))))
          *calls (atom [])
          s (f/signal (inc @(:value r)))
-         fx (f/effect [] (swap! *calls conj @s))
-         _dispose (fx)]
+         fx (f/effect [] (swap! *calls conj @s))]
      (is (= :pending @(:state r)))
      ;; (is (= :unresolved @(:state r)))
      (is (= nil @(:value r)))

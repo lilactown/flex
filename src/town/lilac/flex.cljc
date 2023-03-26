@@ -204,13 +204,7 @@
           (doseq [on-error on-error-fns]
             (on-error e))))
       (set! order (inc (apply max (map #(-get-order %) dependencies))))
-      this))
-  #?(:clj clojure.lang.IFn :cljs IFn)
-  (#?(:clj invoke :cljs -invoke) [this] (-dispose this))
-  #?@(:clj ((applyTo [this args]
-                     (when (pos? (count args))
-                       (throw (ex-info "Invalid arity" {:args args})))
-                     (-dispose this)))))
+      this)))
 
 (deftype SyncSignal [^:volatile-mutable cache
                      ^:volatile-mutable dependents
@@ -347,12 +341,10 @@
   `(create-signal (fn [] ~@body)))
 
 (defmacro effect
-  "Creates a reactive effect object, which is meant to do side effects based on
-  changes to signals and sources.
-
-  Returns a function that when called immediately executes the body and connects
-  any reactive objects dereferenced in the body, so that they start computing
-  and reacting to upstream changes.
+  "Returns a reactive effect object, which is meant to do side effects based on
+  changes to signals and sources. It immediately executes the body given and
+  connects any reactive objects dereferenced in the body, so that they start
+  computing and reacting to upstream changes.
 
   `body` is like a function that can take zero or one arguments. If zero
   arguments are accepted, the body will be called each time any dependencies
@@ -381,9 +373,9 @@
     ,,,)
   ```
 
-  Calling the `fx` function returns a \"dispose\" function, when called will
-  stop the effect from continuing to execute, and cleans up any signals that are
-  solely referenced by the effect and any effects that were started inside of
+  Calling the `dispose!` function will stop the effect from continuing to
+  execute, and cleans up any signals that are solely referenced by the effect
+  and any effects that were started inside of it. Call `run!` on it to restart
   it."
   [& body]
   (let [hd (first body)

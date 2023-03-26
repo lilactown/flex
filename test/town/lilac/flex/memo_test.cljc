@@ -18,7 +18,7 @@
     (A 1)
     (is (= 2 @B @B'))
     (is (= 3 @C))
-    (fx)
+    (f/dispose! fx)
     (let [B'' (factory 1)
           C' (factory 2)]
       (is (not= B B''))
