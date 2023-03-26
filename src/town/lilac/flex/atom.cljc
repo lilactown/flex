@@ -42,7 +42,7 @@
                 (doseq [[k f] (.-watchers this)]
                   (f k this prev @s))
                 @s)]
-        (set! dispose (fx))))
+        (set! dispose fx)))
     (set! watchers (assoc watchers key f))
     this)
   (#?(:clj removeWatch :cljs -remove-watch) [this key]
@@ -56,7 +56,7 @@
                 (doseq [[k f] (.-watchers this)]
                   (f k this prev @s))
                 @s)]
-        (set! dispose (fx))))
+        (set! dispose fx)))
     @s))
 
 (defn watch

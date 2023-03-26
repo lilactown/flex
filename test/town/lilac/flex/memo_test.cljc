@@ -10,8 +10,7 @@
         B (factory 1)
         B' (factory 1)
         C (factory 2)
-        Z (f/effect [] (+ @B @B' @C))
-        dispose (Z)]
+        fx (f/effect [] (+ @B @B' @C))]
     (is (= B B'))
     (is (= 1 @B @B'))
     (is (not= B C))
@@ -19,7 +18,7 @@
     (A 1)
     (is (= 2 @B @B'))
     (is (= 3 @C))
-    (dispose)
+    (fx)
     (let [B'' (factory 1)
           C' (factory 2)]
       (is (not= B B''))

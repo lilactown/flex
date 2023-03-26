@@ -48,8 +48,7 @@
         *source (atom 0)
         A (atom/watch *source)
         B (f/signal (inc @A))
-        Z (f/effect [] (swap! *calls conj @B))
-        _dispose (Z)]
+        _fx (f/effect [] (swap! *calls conj @B))]
     (is (= 0 @A))
     (is (= [1] @*calls))
     (swap! *source inc)

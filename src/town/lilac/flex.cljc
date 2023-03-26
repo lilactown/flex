@@ -204,13 +204,13 @@
           (doseq [on-error on-error-fns]
             (on-error e))))
       (set! order (inc (apply max (map #(-get-order %) dependencies))))
-      (fn dispose [] (-dispose this))))
+      this))
   #?(:clj clojure.lang.IFn :cljs IFn)
-  (#?(:clj invoke :cljs -invoke) [this] (-run! this))
+  (#?(:clj invoke :cljs -invoke) [this] (-dispose this))
   #?@(:clj ((applyTo [this args]
                      (when (pos? (count args))
                        (throw (ex-info "Invalid arity" {:args args})))
-                     (-run! this)))))
+                     (-dispose this)))))
 
 (deftype SyncSignal [^:volatile-mutable cache
                      ^:volatile-mutable dependents
@@ -323,7 +323,8 @@
 (defn create-effect
   "Creates a reactive effect object. Used by `effect`."
   [f arity]
-  (->SyncEffect #{} sentinel nil #{} [] (vswap! *reactive-counter inc) f arity))
+  (-run! (->SyncEffect
+          #{} sentinel nil #{} [] (vswap! *reactive-counter inc) f arity)))
 
 (defn listen
   "Creates a reactive listener meant to do side effects. Given a signal `s`
@@ -382,7 +383,8 @@
 
   Calling the `fx` function returns a \"dispose\" function, when called will
   stop the effect from continuing to execute, and cleans up any signals that are
-  solely referenced by the effect."
+  solely referenced by the effect and any effects that were started inside of
+  it."
   [& body]
   (let [hd (first body)
         arity (cond
@@ -399,6 +401,13 @@
                                        {:body body})))]
     `(create-effect (fn ~@body) ~arity)))
 
+(defn run!
+  [fx]
+  (-run! fx))
+
+(defn dispose!
+  [fx]
+  (-dispose fx))
 
 (defn- sync!
   [deps]
