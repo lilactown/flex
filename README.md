@@ -11,7 +11,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "3050ac5b6b36aaefba7974eb338d69be38522f6a"
+                 :git/sha "346bad039b560a62529a39af66e0afe35565b125"
 ```
 
 ## Example
@@ -30,9 +30,6 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 
 ;; an effect that runs side effects when its dependencies change
 (def prn-fx (flex/listen counter-sq prn))
-
-;; start the listener
-(def dispose (prn-fx))
 
 (counter 1)
 ;; print: 1
@@ -55,7 +52,8 @@ town.lilac/flex {:git/url "https://github.com/lilactown/flex"
 
 ;; print: 100
 
-(dispose) ; stop the effect from running and any dependent signals calculating
+;; stop the effect from running and any dependent signals calculating
+(flex/dispose! prn-fx)
 
 (counter inc)
 
@@ -114,8 +112,8 @@ Reagent schedules some effects asynchronously using `requestAnimationFrame`.
 
 #### Nested effects
 
-Effects can be nested within each other, and when the outer effect is disposed it
-will dispose of all inner effects.
+Effects can be nested within each other, and when the outer effect is disposed
+it will dispose of all inner effects.
 
 #### Scope
 
