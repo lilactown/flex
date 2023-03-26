@@ -11,7 +11,7 @@ Using git deps
 
 ```clojure
 town.lilac/flex {:git/url "https://github.com/lilactown/flex"
-                 :git/sha "a17120b49f9b5efcc519f7ae2cc775527c2ece57"
+                 :git/sha "3050ac5b6b36aaefba7974eb338d69be38522f6a"
 ```
 
 ## Example
