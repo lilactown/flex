@@ -4,7 +4,7 @@
   #?(:clj (:import [town.lilac.flex SyncSource])))
 
 (deftype SyncAtomWrapper [^:volatile-mutable watchers
-                          ^:volatile-mutable dispose
+                          ^:volatile-mutable fx
                           swapper
                           resetter
                           s]
@@ -12,7 +12,7 @@
       (Object
        (finalize
         [_]
-        (and dispose (dispose)))
+        (and fx (flex/dispose! fx)))
        clojure.lang.IAtom
        (swap [_ f] (swapper f))
        (swap [_ f a] (swapper #(f % a)))
@@ -33,16 +33,16 @@
   (-add-on-dispose [_ _f] nil)
   (-dispose [_]
     (set! watchers nil)
-    (and dispose (dispose)))
+    (and fx (flex/dispose! fx)))
   #?(:clj clojure.lang.IRef :cljs IWatchable)
   (#?(:clj addWatch :cljs -add-watch) [this key f]
-    (when (nil? dispose)
+    (when (nil? fx)
       (let [fx (flex/effect
                 [prev]
                 (doseq [[k f] (.-watchers this)]
                   (f k this prev @s))
                 @s)]
-        (set! dispose fx)))
+        (set! (.-fx this) fx)))
     (set! watchers (assoc watchers key f))
     this)
   (#?(:clj removeWatch :cljs -remove-watch) [this key]
@@ -50,13 +50,13 @@
     this)
   #?(:clj clojure.lang.IDeref :cljs IDeref)
   (#?(:clj deref :cljs -deref) [this]
-    (when (nil? dispose)
+    (when (nil? fx)
       (let [fx (flex/effect
                 [prev]
                 (doseq [[k f] (.-watchers this)]
                   (f k this prev @s))
                 @s)]
-        (set! dispose fx)))
+        (set! (.-fx this) fx)))
     @s))
 
 (defn watch
