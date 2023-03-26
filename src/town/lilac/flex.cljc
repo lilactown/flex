@@ -388,10 +388,15 @@
         arity (cond
                 ;; (effect [] ,,,) and (effect [x] ,,,)
                 (vector? hd) (count hd)
+
                 ;; (effect ([] ,,,) ([x] ,,,))
-                (and (list? hd) (list? (second body))) :multi
+                (and (seq? hd) (seq? (second body))) :multi
+
                 ;; (effect ([] ,,,)) and (effect ([x] ,,,))
-                (list? hd) (count (first hd)))]
+                (seq? hd) (count (first hd))
+
+                :else (throw (ex-info "effect macro unknown format"
+                                       {:body body})))]
     `(create-effect (fn ~@body) ~arity)))
 
 
