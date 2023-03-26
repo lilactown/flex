@@ -142,7 +142,7 @@
           (on-error e))))
     (set! order (inc (-get-order dep)))
     (-connect dep this)
-    (fn dispose [] (-dispose this)))
+    this))
 
 (deftype SyncEffect [^:volatile-mutable dependencies
                      ^:volatile-mutable prev
@@ -320,7 +320,7 @@
   will call `f` anytime `s` changes. Returns a function that when called, stops
   listening."
   [s f]
-  (->SyncListener nil [] (vswap! *reactive-counter inc) s f))
+  (-run! (->SyncListener nil [] (vswap! *reactive-counter inc) s f)))
 
 (defmacro signal
   "Creates a reactive memoized computation which yields the return value of the
