@@ -1,5 +1,9 @@
 # Changelog
 
+## 2023-03-25
+
+* Fixed `effect` macro detecting arity inside of other macros
+
 ## 2023-03-18
 
 * Gaurantee stable order of running signals and effects by order of creation
