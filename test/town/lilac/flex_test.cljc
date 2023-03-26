@@ -330,7 +330,7 @@
                                  x)))
           Z (-> (f/effect
                  []
-                 (swap! *calls conj (doto [@C @D] prn)))
+                 (swap! *calls conj [@C @D]))
                 (f/on-error (fn [_e] (swap! *errors inc))))
           _dispose (Z)]
       (is (= 2 @D))
