@@ -143,12 +143,6 @@
     (set! order (inc (-get-order dep)))
     (-connect dep this)
     (fn dispose [] (-dispose this)))
-  #?(:clj clojure.lang.IFn :cljs IFn)
-  (#?(:clj invoke :cljs -invoke) [this] (-run! this))
-  #?@(:clj ((applyTo [this args]
-                     (when (pos? (count args))
-                       (throw (ex-info "Invalid arity" {:args args})))
-                     (-run! this)))))
 
 (deftype SyncEffect [^:volatile-mutable dependencies
                      ^:volatile-mutable prev
