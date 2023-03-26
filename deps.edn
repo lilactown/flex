@@ -1,4 +1,4 @@
-{:paths ["src"]
+{:paths ["src" "resources"]
  :aliases {:dev
            {:extra-paths ["test" "dev"]
             :extra-deps {org.clojure/clojurescript {:mvn/version "LATEST"}}}
