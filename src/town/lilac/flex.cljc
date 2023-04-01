@@ -22,6 +22,7 @@
 (defprotocol Reactive
   (-connect [o dep])
   (-disconnect [o dep])
+  (-connected? [o])
   (-touch [o]))
 
 (defprotocol Ordered
@@ -69,6 +70,8 @@
     (set! dependents (conj dependents dep)))
   (-disconnect [_ dep]
     (set! dependents (disj dependents dep)))
+  (-connected? [_]
+    (boolean (seq dependents)))
   (-touch [_] value)
   Ordered
   (-get-order [_] 0)
@@ -224,6 +227,7 @@
     (set! dependents (disj dependents dep))
     (when (empty? dependents)
       (-dispose this)))
+  (-connected? [_] (not= sentinel cache))
   (-touch [this]
     (when (= sentinel cache)
       ;; track dependencies
@@ -250,7 +254,9 @@
       (do (set! *reactive* (conj *reactive* this))
           (-touch this))
       (some? error) (throw error)
-      :else cache))
+      (not= sentinel cache) cache
+      ;; run f
+      :else (f)))
   Signal
   (-propagate [this]
     (binding [*reactive* #{}]
@@ -394,6 +400,10 @@
 (defn dispose!
   [fx]
   (-dispose fx))
+
+(defn connected?
+  [s]
+  (-connected? s))
 
 (defn- sync!
   [deps]

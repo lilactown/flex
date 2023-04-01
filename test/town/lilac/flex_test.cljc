@@ -4,13 +4,12 @@
    [town.lilac.flex :as f])
   #?(:clj (:import clojure.lang.ExceptionInfo)))
 
-
 (deftest linear
   (let [*calls (atom [])
         A (f/source 2)
         B (f/signal (* @A @A))]
     (is (= 2 @A))
-    (is (= f/sentinel @B))
+    (is (not (f/connected? B)))
     (let [Z (f/listen B #(swap! *calls conj %))]
       (is (= 2 @A))
       (is (= 4 @B))
@@ -22,13 +21,13 @@
       (f/dispose! Z)
       (A 4)
       (is (= 4 @A))
-      (is (= f/sentinel @B))
+      (is (not (f/connected? B)))
       (is (= [9] @*calls))))
   (let [*calls (atom [])
         A (f/source 2)
         B (f/signal (* @A @A))]
     (is (= 2 @A))
-    (is (= f/sentinel @B))
+    (is (not (f/connected? B)))
     (let [fx (f/effect [] (swap! *calls conj @B))]
       (is (= 2 @A))
       (is (= 4 @B))
@@ -40,7 +39,7 @@
       (f/dispose! fx)
       (A 4)
       (is (= 4 @A))
-      (is (= f/sentinel @B))
+      (is (not (f/connected? B)))
       (is (= [4 9] @*calls)))))
 
 (deftest dirty-diamond
@@ -64,9 +63,9 @@
     (f/dispose! fx)
     (A 4)
     (is (= 4 @A))
-    (is (= f/sentinel @B))
-    (is (= f/sentinel @C))
-    (is (= f/sentinel @D))
+    (is (not (f/connected? B)))
+    (is (not (f/connected? C)))
+    (is (not (f/connected? D)))
     (is (= [[4 16] [9 25]] @*calls))))
 
 (deftest effect-cleanup
@@ -148,16 +147,16 @@
                         (inc @C)))
           fx (f/effect [] (swap! *calls conj @D))]
       (is (= [1] @*calls))
-      (is (= f/sentinel @C))
+      (is (not (f/connected? C)))
       (A 1)
       (is (= [1 101] @*calls))
-      (is (= f/sentinel @B))
+      (is (not (f/connected? B)))
       (A 2)
       (is (= [1 101 21] @*calls))
       (f/dispose! fx)
-      (is (= f/sentinel @B))
-      (is (= f/sentinel @C))
-      (is (= f/sentinel @D))
+      (is (not (f/connected? B)))
+      (is (not (f/connected? C)))
+      (is (not (f/connected? D)))
       (A 3)
       (is (= [1 101 21] @*calls))))
   (testing "order"
@@ -366,6 +365,14 @@
       (A 3)
       (B 3)
       (is (= [[0 0] [1 0] [2 1] [2 2] [3 2]] @*calls)))))
+
+(deftest disconnected-test
+  (let [A (f/source 0)
+        B (f/signal (inc @A))]
+    (is (= 1 @B))
+    (is (= f/sentinel (:cache (f/dump B))))
+    (is (not (f/connected? B)))
+    (is (not (f/connected? A)))))
 
 (comment
   (t/run-tests))
