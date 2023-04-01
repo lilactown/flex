@@ -371,17 +371,18 @@
         A (f/source 0)
         B (f/signal
            (swap! *calls inc)
-           (inc @A))]
-    (is (= 1 @B))
-    (is (= 1 @B))
-    (is (= 2 @*calls))
+           (inc @A))
+        C (f/signal (* @B @B))]
+    (is (= 1 @C))
+    (is (= 1 @C))
+    (is (= 4 @*calls))
     (is (= f/sentinel (:cache (f/dump B))))
     (is (not (f/connected? B)))
     (is (not (f/connected? A)))
     (let [_fx (f/effect [] @B)]
-      (is (= 1 @B))
-      (is (= 1 @B))
-      (is (= 3 @*calls)))))
+      (is (= 1 @C))
+      (is (= 1 @C))
+      (is (= 5 @*calls)))))
 
 (comment
   (t/run-tests))
