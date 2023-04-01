@@ -260,7 +260,7 @@
       :else
       (if *warn-nonreactive-deref*
         (binding [*warn-nonreactive-deref* false]
-          (println "WARNING: Signal dereferenced outside of reactive context")
+          (println "WARNING: Disconnected signal dereferenced outside of reactive context")
           (f))
         (f))))
   Signal
