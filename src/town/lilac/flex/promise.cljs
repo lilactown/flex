@@ -7,22 +7,23 @@
   (-deref [_] @value)
   IFn
   (-invoke [this]
-    (case @state
-      (:unresolved :ready :error)
-      (set! p (.then (fetcher)
-                     (fn [x]
-                       (flex/batch
-                        (state :ready)
-                        (value x)))
-                     (fn [e]
-                       (flex/batch
-                        (state :error)
-                        (error e)))))
-      nil)
-    (case @state
-      :unresolved (state :pending)
-      (:ready :error) (state :refreshing)
-      nil)
+    (flex/untrack
+     (case @state
+       (:unresolved :ready :error)
+       (set! p (.then (fetcher)
+                      (fn [x]
+                        (flex/batch
+                         (state :ready)
+                         (value x)))
+                      (fn [e]
+                        (flex/batch
+                         (state :error)
+                         (error e)))))
+       nil)
+     (case @state
+       :unresolved (state :pending)
+       (:ready :error) (state :refreshing)
+       nil))
     this))
 
 (defn resource
