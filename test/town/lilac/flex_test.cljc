@@ -377,7 +377,11 @@
     (is (= 2 @*calls))
     (is (= f/sentinel (:cache (f/dump B))))
     (is (not (f/connected? B)))
-    (is (not (f/connected? A)))))
+    (is (not (f/connected? A)))
+    (let [_fx (f/effect [] @B)]
+      (is (= 1 @B))
+      (is (= 1 @B))
+      (is (= 3 @*calls)))))
 
 (comment
   (t/run-tests))
