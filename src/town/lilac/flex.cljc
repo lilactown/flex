@@ -57,6 +57,7 @@
 (def *reactive-counter (volatile! 0))
 (def ^:dynamic *current-tx* {})
 (def sentinel ::init)
+(def ^:dynamic *warn-nonreactive-deref* true)
 
 (deftype SyncSource [^:volatile-mutable value
                      ^:volatile-mutable dependents
@@ -256,7 +257,12 @@
       (some? error) (throw error)
       (not= sentinel cache) cache
       ;; run f
-      :else (f)))
+      :else
+      (if *warn-nonreactive-deref*
+        (binding [*warn-nonreactive-deref* false]
+          (println "WARNING: Signal dereferenced outside of reactive context")
+          (f))
+        (f))))
   Signal
   (-propagate [this]
     (binding [*reactive* #{}]
