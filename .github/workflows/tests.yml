@@ -5,9 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v2
-      - uses: actions/setup-java@v1
+        uses: actions/checkout@v3.4.0
+      - uses: actions/setup-java@v2
         with:
+          distribution: 'adopt'
           java-version: '11'
       - uses: DeLaGuardo/setup-clojure@master
         with:
@@ -22,7 +23,9 @@ jobs:
           key: cljdeps-${{ hashFiles('deps.edn') }}
           restore-keys: cljdeps-
       - name: Setup Node.js environment
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
       - name: Run Clojure tests
         run: clojure -X:test-clj
       - name: Run ClojureScript tests
