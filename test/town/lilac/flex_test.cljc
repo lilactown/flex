@@ -367,9 +367,14 @@
       (is (= [[0 0] [1 0] [2 1] [2 2] [3 2]] @*calls)))))
 
 (deftest disconnected-test
-  (let [A (f/source 0)
-        B (f/signal (inc @A))]
+  (let [*calls (atom 0)
+        A (f/source 0)
+        B (f/signal
+           (swap! *calls inc)
+           (inc @A))]
     (is (= 1 @B))
+    (is (= 1 @B))
+    (is (= 2 @*calls))
     (is (= f/sentinel (:cache (f/dump B))))
     (is (not (f/connected? B)))
     (is (not (f/connected? A)))))
