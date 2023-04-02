@@ -201,7 +201,9 @@
         (catch #?(:clj Throwable :cljs js/Object) e
           (doseq [on-error on-error-fns]
             (on-error e))))
-      (set! order (inc (apply max (map #(-get-order %) dependencies))))
+      (if (seq *reactive*)
+        (set! order (inc (apply max (map #(-get-order %) dependencies))))
+        (set! order 0))
       this)))
 
 (deftype SyncSignal [^:volatile-mutable cache
@@ -237,7 +239,10 @@
         (try
           (set! (.-cache this) (f))
           (set! (.-dependencies this) *reactive*)
-          (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
+          (if (seq *reactive*)
+            (set! (.-order this)
+                  (inc (apply max (map #(-get-order %) *reactive*))))
+            (set! (.-order this) 0))
           (doseq [dep *reactive*]
             (-connect dep this))
           (catch #?(:clj Throwable :cljs js/Object) e
@@ -275,7 +280,10 @@
          (doseq [dep (set/difference *reactive* dependencies)]
            (-connect dep this))
          (set! dependencies *reactive*)
-         (set! (.-order this) (inc (apply max (map #(-get-order %) *reactive*))))
+         (if (seq *reactive*)
+           (set! (.-order this)
+                 (inc (apply max (map #(-get-order %) *reactive*))))
+           (set! (.-order this) 0))
          ;; only return dependents and set cache if value is different
          ;; aka cutoff
          (when (not= cache newv)
