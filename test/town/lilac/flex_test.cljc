@@ -384,5 +384,12 @@
       (is (= 1 @C))
       (is (= 5 @*calls)))))
 
+(deftest laziness
+  (let [src (f/source 5)
+        A (f/signal (* @src @src))
+        B (f/signal (map #(+ @A %) (range 5)))
+        fx (f/effect [] (prn @B))]
+    ))
+
 (comment
   (t/run-tests))
