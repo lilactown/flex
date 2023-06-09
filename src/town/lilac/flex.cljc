@@ -95,11 +95,14 @@
   (-discard [_ tx-id]
     (set! txs (dissoc txs tx-id)))
   (-commit [_ tx-id]
-    (set! value (get txs tx-id))
-    (set! txs (dissoc txs tx-id))
-    ;; TODO ensure that tx-id is monotonic
-    (set! commit tx-id)
-    dependents)
+    (let [new-val (get txs tx-id)
+          val-change? (not= value new-val)]
+      (set! value (get txs tx-id))
+      (set! txs (dissoc txs tx-id))
+      ;; TODO ensure that tx-id is monotonic
+      (set! commit tx-id)
+      (when val-change?
+        dependents)))
   (-rebase [_ parent-id child-id]
     (set! txs (assoc txs parent-id (get txs child-id))))
   #?(:clj clojure.lang.IDeref :cljs IDeref)

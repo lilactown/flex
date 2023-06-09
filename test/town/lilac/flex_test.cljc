@@ -391,5 +391,12 @@
         fx (f/effect [] (prn @B))]
     ))
 
+(deftest listener-on-source
+  (let [a (f/source 0)
+        *calls (atom 0)]
+    (f/listen a (fn [_] (swap! *calls inc)))
+    (a 0)
+    (is (zero? @*calls) "Needlessly called listen function")))
+
 (comment
   (t/run-tests))
