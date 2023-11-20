@@ -398,5 +398,12 @@
     (a 0)
     (is (zero? @*calls) "Needlessly called listen function")))
 
+(deftest source-variadic
+  (let [src (f/source 0)]
+    (src + 2)
+    (is (= 2 @src))
+    (apply src - [1])
+    (is (= 1 @src))))
+
 (comment
   (t/run-tests))

@@ -117,10 +117,46 @@
     (if (:id *current-tx*)
       (get txs (-send this x))
       (send! this x)))
-  #?@(:clj ((applyTo [this args]
-                     (when (not= 1 (count args))
-                       (throw (ex-info "Invalid arity" {:this this :args args})))
-                     (this (first args))))))
+  (#?(:clj invoke :cljs -invoke) [this x a]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a)))
+      (send! this #(x %1 a))))
+  (#?(:clj invoke :cljs -invoke) [this x a b]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a b)))
+      (send! this #(x %1 a b))))
+  (#?(:clj invoke :cljs -invoke) [this x a b c]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a b c)))
+      (send! this #(x %1 a b c))))
+  (#?(:clj invoke :cljs -invoke) [this x a b c d]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a b c d)))
+      (send! this #(x %1 a b c d))))
+  (#?(:clj invoke :cljs -invoke) [this x a b c d e]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a b c d e)))
+      (send! this #(x %1 a b c d e))))
+  (#?(:clj invoke :cljs -invoke) [this x a b c d e f]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a b c d e f)))
+      (send! this #(x %1 a b c d e f))))
+  (#?(:clj invoke :cljs -invoke) [this x a b c d e f g]
+    (if (:id *current-tx*)
+      (get txs (-send this #(x %1 a b c d e f g)))
+      (send! this #(x %1 a b c d e f g))))
+  #?@(:clj ((applyTo [this [a b c d e f g :as args]]
+                     (case (count args)
+                       1 (this a)
+                       2 (this a b)
+                       3 (this a b c)
+                       4 (this a b c d)
+                       5 (this a b c d e)
+                       6 (this a b c d e f)
+                       7 (this a b c d e f g)
+                       :else (throw (ex-info "Apply with arity not supported. Open a PR"
+                                             {:arity (count args)
+                                              :args args})))))))
 
 (deftype SyncListener [^:volatile-mutable order
                        ^:volatile-mutable on-error-fns
