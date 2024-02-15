@@ -2,3 +2,4 @@
 /.cpcache/
 /cljs-test-runner-out/
 /.clj-kondo/.cache/
+/.lsp/.cache/
