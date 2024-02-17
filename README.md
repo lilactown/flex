@@ -121,6 +121,13 @@ flex only handles reactive computations and has no external dependencies.
 Reagent bundles together its reactive computations with additional functionality
 to build web apps in the browser, and depends on React.js for this.
 
+## Related projects
+
+### Demos & examples
+
+[helix-flex](https://github.com/rafaeldelboni/helix-flex): A simple project to setup
+and evaluate flex with [React (helix)](https://github.com/lilactown/helix).
+
 ## License & Copyright
 
 Copyright 2022 Will Acton. Released under the EPL 2.0 license
