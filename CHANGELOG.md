@@ -1,5 +1,8 @@
 # Changelog
 
+See commit history for latest changes. This file will have summaries of large
+changes across multiple commits.
+
 ## 2023-03-26
 
 A large change while experimenting with real world cases: `effect` and `listen`
