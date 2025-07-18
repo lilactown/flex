@@ -9,5 +9,5 @@
             :exec-fn cognitect.test-runner.api/test}
            :test-cljs
            {:extra-paths ["test"]
-            :extra-deps {olical/cljs-test-runner {:mvn/version "3.8.0"}}
+            :extra-deps {olical/cljs-test-runner {:mvn/version "3.8.1"}}
             :main-opts ["-m" "cljs-test-runner.main"]}}}
